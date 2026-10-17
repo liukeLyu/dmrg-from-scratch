@@ -8,6 +8,7 @@ version = "0.1.0.dev0"
 description = "DMRG and iDMRG for the transverse-field Ising chain, written from scratch with NumPy and SciPy for learning"
 readme = "README.md"
 requires-python = ">=3.10"
+license = "MIT"
 authors = [{ name = "Liuke Lyu" }]
 dependencies = ["numpy>=1.24", "scipy>=1.10"]
 

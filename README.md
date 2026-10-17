@@ -38,8 +38,8 @@ Same accuracy everywhere. TeNPy is up to 3× faster for finite DMRG at large $\c
 
 ```bash
 python -m venv .venv && source .venv/bin/activate
+pip install git+https://github.com/liukeLyu/multipartite-entanglement-detection-toolkit   # optional, install first: medt, one cross-check of the exact energies
 pip install -e ".[dev,examples]"
-pip install -e ../multipartite-entanglement-detection-toolkit   # optional: medt, one cross-check of the exact energies
 pytest            # about 20 s
 pytest -m slow    # also re-runs the notebooks and the iDMRG central-charge fit (a few minutes)
 ruff check . && ruff format --check .
