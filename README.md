@@ -2,6 +2,8 @@
 
 DMRG for the transverse-field Ising chain, $H = -\sum_i X_iX_{i+1} - h\sum_i Z_i$, written from scratch with NumPy and SciPy only, as a learning project. The goal is the simplest readable code: every function is short, and every tensor index is named in a comment.
 
+New to DMRG? Start with [`00_start_here`](examples/00_start_here.ipynb): a short, plain-language introduction to why DMRG works (the exponential wall, the area law) that runs it on 60 spins in under a minute.
+
 | Step | What you learn | Module | Notebook |
 |---|---|---|---|
 | 1 | Matrix product states: SVD per cut, canonical forms, Schmidt values, entanglement, truncation | `dmrg.mps` | [`01_mps_basics`](examples/01_mps_basics.ipynb) |
