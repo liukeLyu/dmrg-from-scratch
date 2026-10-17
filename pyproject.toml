@@ -1,0 +1,31 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "dmrg-from-scratch"
+version = "0.1.0.dev0"
+description = "DMRG and iDMRG for the transverse-field Ising chain, written from scratch with NumPy and SciPy for learning"
+readme = "README.md"
+requires-python = ">=3.10"
+authors = [{ name = "Liuke Lyu" }]
+dependencies = ["numpy>=1.24", "scipy>=1.10"]
+
+[project.optional-dependencies]
+examples = ["jupyter", "matplotlib"]
+benchmark = ["physics-tenpy>=1.0"]
+dev = ["pytest>=7", "ruff>=0.5", "matplotlib", "nbclient", "ipykernel"]
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/dmrg"]
+
+[tool.pytest.ini_options]
+markers = ["slow: tens of seconds each (run with -m slow)"]
+addopts = "-m 'not slow'"
+
+[tool.ruff]
+line-length = 120
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B"]
+ignore = ["E741"]
