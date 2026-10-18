@@ -1,5 +1,7 @@
 # dmrg-from-scratch
 
+*Why I built this.* I have been around DMRG for years. I know what a matrix product state is and roughly what infinite DMRG does, and I have run the standard packages. But running a package is not the same as understanding it, and I never felt I understood DMRG at a deep level. So I wrote it myself, one small piece at a time, on a model I know well, checking each step against the exact answer.
+
 The density-matrix renormalization group (DMRG), written from scratch in short, readable NumPy and SciPy, on the transverse-field Ising chain $H = -\sum_i X_iX_{i+1} - h\sum_i Z_i$. Every result is checked against the exact free-fermion solution.
 
 New to DMRG? Start with [`00_start_here`](examples/00_start_here.ipynb): why a laptop can find the ground state of 60 interacting spins (the exponential wall, the area law).
