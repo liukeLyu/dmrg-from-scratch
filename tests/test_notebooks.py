@@ -1,4 +1,4 @@
-"""Re-execute the tutorial notebooks (slow: about two minutes in total)."""
+"""Re-execute the tutorial notebooks (about a minute in total)."""
 
 from pathlib import Path
 

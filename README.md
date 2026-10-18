@@ -26,6 +26,8 @@ pip install -e ".[dev,examples]"
 pytest
 ```
 
+Each notebook cell runs in seconds. Results that need longer runs appear twice: a small live run you can change, then the full run loaded from a small file in `results/`. `python scripts/make_results.py` remakes those files (about 3 minutes on 4 cores).
+
 `benchmarks/benchmark_tenpy.py` solves the same problems with [TeNPy](https://github.com/tenpy/tenpy) as a cross-check (same accuracy).
 
 Index conventions: MPS tensors `A[left, phys, right]`, MPO tensors `W[w_left, w_right, out, in]`, environments `L[ket, mpo, bra]`.
