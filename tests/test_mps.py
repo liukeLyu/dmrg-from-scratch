@@ -63,7 +63,7 @@ def test_compress_error_is_small_for_weakly_entangled_state():
     assert fidelity > 0.999
 
 
-def test_ghz_entropy_is_log2():
+def test_ghz_entropy_is_one_bit():
     ghz = np.zeros(2**5)
     ghz[0] = ghz[-1] = 1 / np.sqrt(2)
     # GHZ as an MPS with bond dimension 2: A[a, s, b] = delta(a, s, b)
@@ -71,7 +71,7 @@ def test_ghz_entropy_is_log2():
     A[0, 0, 0] = A[1, 1, 1] = 1
     mps = [A[0:1] + A[1:2], A, A, A, A[:, :, 0:1] + A[:, :, 1:2]]
     assert np.allclose(to_dense(normalize(mps)), ghz)
-    assert all(np.isclose(entropy(S), np.log(2)) for S in schmidt_values(mps))
+    assert all(np.isclose(entropy(S), 1) for S in schmidt_values(mps))  # one bit
 
 
 def test_from_dense_is_exact_and_left_canonical():

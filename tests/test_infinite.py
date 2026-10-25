@@ -23,9 +23,9 @@ def test_correlation_length_in_paramagnet(h):
 
 def test_ordered_phase_gives_cat_state():
     # For h < 1 the Z2-symmetric ground state is a cat (|up..> + |down..>) / sqrt(2) dressed by
-    # fluctuations: its entropy is about log 2 and the transfer matrix has a second eigenvalue 1.
+    # fluctuations: its entropy is about 1 bit and the transfer matrix has a second eigenvalue 1.
     res = idmrg(tfim_bulk_tensor(0.5), chi_max=16, n_steps=40)
-    assert abs(res["entropies"][-1] - np.log(2)) < 0.01
+    assert abs(res["entropies"][-1] - 1) < 0.01
     assert correlation_length(res) > 1e4
 
 
@@ -47,5 +47,5 @@ def test_central_charge_from_finite_entanglement_scaling():
         res = idmrg(tfim_bulk_tensor(1.0), chi_max=chi, n_steps=1000)
         S.append(res["entropies"][-1])
         xi.append(correlation_length(res))
-    c = 6 * np.polyfit(np.log(xi), S, 1)[0]
+    c = 6 * np.polyfit(np.log2(xi), S, 1)[0]
     assert abs(c - 0.5) < 0.05

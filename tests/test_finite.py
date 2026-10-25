@@ -27,7 +27,7 @@ def test_dmrg_energy_is_exact(h):
 
 def test_entropies_match_schmidt_values_of_final_mps():
     res = dmrg(tfim_mpo(12, 1.0), chi_max=16, n_sweeps=3)
-    S = [-(s**2 * np.log(s**2)).sum() for s in schmidt_values(res["mps"])]
+    S = [-(s**2 * np.log2(s**2)).sum() for s in schmidt_values(res["mps"])]
     assert np.allclose(S, res["entropies"], atol=1e-8)
 
 

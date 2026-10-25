@@ -46,7 +46,8 @@ def tenpy_infinite(h, chi, n_sweeps):
         "max_E_err": 0,
     }
     E = tenpy_dmrg.run(psi, model, params)["E"]
-    return E, float(psi.entanglement_entropy()[0]), float(psi.correlation_length())
+    S_bits = float(psi.entanglement_entropy()[0]) / np.log(2)  # TeNPy uses the natural log; we use bits
+    return E, S_bits, float(psi.correlation_length())
 
 
 def timed(f, *args, **kwargs):

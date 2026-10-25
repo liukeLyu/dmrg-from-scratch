@@ -110,10 +110,10 @@ def truncated_svd(M, chi_max, cutoff=1e-12):
 
 
 def entropy(S):
-    """Von Neumann entanglement entropy -sum p log p of Schmidt values S (p = S^2)."""
+    """Von Neumann entanglement entropy -sum p log2 p of Schmidt values S (p = S^2), in bits."""
     p = np.asarray(S) ** 2
     p = p[p > 1e-30]
-    return float(-np.sum(p * np.log(p)))
+    return float(-np.sum(p * np.log2(p)))
 
 
 def schmidt_values(mps):

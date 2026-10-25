@@ -27,13 +27,13 @@ def tfim_infinite_energy_density(h, J=1.0):
 
 
 def central_charge_fit(L, S):
-    """Fit S(l) = (c/6) log[(2L/pi) sin(pi l/L)] + const for an open critical chain.
+    """Fit S(l) = (c/6) log2[(2L/pi) sin(pi l/L)] + const for an open critical chain.
 
     ``S[l-1]`` is the entropy of the first l sites. Calabrese and Cardy,
     https://arxiv.org/abs/hep-th/0405152. Returns ``(c, const)``.
     Odd and even l oscillate a little in the open chain, so we fit both together.
     """
     l = np.arange(1, L)
-    x = np.log(2 * L / np.pi * np.sin(np.pi * l / L))
+    x = np.log2(2 * L / np.pi * np.sin(np.pi * l / L))
     slope, const = np.polyfit(x, S, 1)
     return 6 * slope, const
