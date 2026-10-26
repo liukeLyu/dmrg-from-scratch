@@ -344,7 +344,7 @@ pre { font-family: var(--mono); font-size: 13px; line-height: 1.5; background: v
 <div class="tn" data-d="mpo"></div>
 <p>Two physical legs (bra side and ket side) and two bond legs. Read it as a small matrix in the bond indices whose entries are \(2\times2\) operators. The product of these matrices along the chain gives \(H\).</p>
 <p>Why bother? DMRG never builds \(H\) as a \(2^L\times2^L\) matrix. It only ever contracts the MPO with the MPS, which is cheap.</p>
-<div class="check"><p class="q">How many legs does a site tensor of \(\langle\psi|H|\psi\rangle\) have in total, counting MPS, MPO and conjugate MPS?</p><button type="button">Show answer</button><p class="a" hidden>3 + 4 + 3 = 10 legs, but the physical ones are contracted in pairs, leaving three horizontal bonds (ket, MPO, bra) on each side.</p></div>
+<div class="check"><p class="q">To compute \(\langle\psi|H|\psi\rangle\), stack three tensors at one site: the MPS tensor \(A\) on top (3 legs), the MPO tensor \(W\) in the middle (4 legs), and \(A^*\) at the bottom (3 legs). Join \(A\)'s spin leg to the top of \(W\) and the bottom of \(W\) to \(A^*\)'s spin leg. How many legs are still open?</p><button type="button">Show answer</button><p class="a" hidden>6. That's 10 legs in all, minus the 4 used in the two joins. Three point left (ket bond, MPO bond, bra bond) and three point right. This is why the environments in Part 4 have three legs.</p></div>
 </article>
 
 <article data-unit="3" data-title="The TFIM as a little machine">
