@@ -1,0 +1,818 @@
+<title>DMRG Pocket Course</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Familjen+Grotesk:wght@500;700&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;1,8..60,400&family=JetBrains+Mono:wght@400;600&display=swap">
+<style>
+/* Layout: one narrow reading column; a home list of lessons, and one lesson at a time with a sticky bar. */
+:root {
+  --bg: #f3f6f8;
+  --paper: #ffffff;
+  --ink: #15232d;
+  --muted: #5a6b76;
+  --line: #d6e0e6;
+  --accent: #0d6f7d;
+  --accent-soft: #e0f0f2;
+  --done: #2f7a3e;
+  --data: #7a4a0d;
+  --data-soft: #fbf1e2;
+  --display: "Familjen Grotesk", "Helvetica Neue", Arial, sans-serif;
+  --body: "Source Serif 4", Georgia, "Times New Roman", serif;
+  --mono: "JetBrains Mono", ui-monospace, Menlo, Consolas, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0f171c; --paper: #16222a; --ink: #e3ecf0; --muted: #93a6b1; --line: #2a3a44;
+    --accent: #5cc3cf; --accent-soft: #173a40; --done: #79c788; --data: #e8b56a; --data-soft: #2e2416;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0f171c; --paper: #16222a; --ink: #e3ecf0; --muted: #93a6b1; --line: #2a3a44;
+  --accent: #5cc3cf; --accent-soft: #173a40; --done: #79c788; --data: #e8b56a; --data-soft: #2e2416;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body {
+  background: var(--bg); color: var(--ink); font-family: var(--body); font-size: 18px; line-height: 1.6;
+  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px));
+  padding-block: 0 48px;
+}
+body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-area-inset-top, 0px); z-index: 10; background: var(--bg); }
+.wrap { max-width: 640px; margin: 0 auto; }
+h1, h2, h3 { font-family: var(--display); text-wrap: balance; line-height: 1.2; margin: 0; }
+a { color: var(--accent); }
+code { font-family: var(--mono); font-size: 0.82em; background: var(--accent-soft); padding: 0.05em 0.3em; border-radius: 4px; overflow-wrap: anywhere; }
+button { font: inherit; cursor: pointer; }
+button:focus-visible, a:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
+
+/* Home */
+.hero { padding-block: 28px 8px; display: grid; gap: 10px; }
+.eyebrow { font-family: var(--mono); font-size: 12px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); }
+.hero h1 { font-size: 34px; }
+.hero p { margin: 0; color: var(--muted); }
+.progress { display: grid; gap: 6px; margin-top: 8px; }
+.bar { height: 8px; background: var(--line); border-radius: 99px; overflow: hidden; }
+.bar > span { display: block; height: 100%; background: var(--accent); width: 0; transition: width 0.3s; }
+.progress small { font-family: var(--mono); font-size: 13px; color: var(--muted); font-variant-numeric: tabular-nums; }
+.continue { margin-top: 10px; background: var(--accent); color: var(--paper); border: 0; border-radius: 12px; padding: 14px 18px; text-align: left; font-family: var(--display); font-weight: 700; font-size: 17px; }
+.continue span { display: block; font-family: var(--body); font-weight: 400; font-size: 15px; opacity: 0.9; }
+.unit { margin-top: 28px; display: grid; gap: 4px; }
+.unit h2 { font-size: 15px; font-family: var(--mono); font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); padding-bottom: 6px; border-bottom: 1px solid var(--line); }
+.unit p.blurb { margin: 4px 0 6px; font-size: 15px; color: var(--muted); }
+.row { display: grid; grid-template-columns: 2.2em 1fr auto; align-items: center; gap: 10px; width: 100%; background: none; border: 0; border-bottom: 1px solid var(--line); padding: 12px 2px; text-align: left; color: var(--ink); }
+.row .n { font-family: var(--mono); font-size: 14px; color: var(--muted); font-variant-numeric: tabular-nums; }
+.row .t { font-family: var(--display); font-weight: 500; font-size: 17px; line-height: 1.3; min-width: 0; }
+.row .mark { width: 22px; height: 22px; border-radius: 50%; border: 2px solid var(--line); display: grid; place-items: center; font-size: 13px; color: var(--paper); }
+.row.is-done .mark { background: var(--done); border-color: var(--done); }
+.row.is-done .mark::after { content: "✓"; }
+.foot { margin-top: 32px; font-size: 15px; color: var(--muted); }
+.linkbtn { background: none; border: 0; color: var(--accent); text-decoration: underline; padding: 0; font-size: 15px; }
+
+/* Lesson view */
+.topbar { position: sticky; top: env(safe-area-inset-top, 0px); z-index: 5; background: var(--bg); display: flex; align-items: center; justify-content: space-between; gap: 12px; padding-block: 10px; border-bottom: 1px solid var(--line); }
+.topbar button { background: none; border: 0; color: var(--accent); font-family: var(--display); font-weight: 500; font-size: 16px; padding: 6px 0; }
+.topbar .pos { font-family: var(--mono); font-size: 13px; color: var(--muted); font-variant-numeric: tabular-nums; }
+.lesson { padding-block: 18px 8px; display: grid; gap: 14px; }
+.lesson .unitname { font-family: var(--mono); font-size: 12px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--accent); }
+.lesson h2 { font-size: 27px; }
+.lesson p { margin: 0; }
+.lesson ul { margin: 0; padding-left: 1.2em; display: grid; gap: 4px; }
+.math { overflow-x: auto; overflow-y: hidden; background: var(--paper); border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px; text-align: center; }
+.data { background: var(--data-soft); border-radius: 10px; padding: 12px 14px; font-size: 16px; }
+.data b { font-family: var(--mono); font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--data); display: block; margin-bottom: 2px; }
+.code { font-size: 15px; color: var(--muted); }
+pre { font-family: var(--mono); font-size: 13px; line-height: 1.5; background: var(--paper); border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px; overflow-x: auto; margin: 0; }
+.check { border: 2px solid var(--accent-soft); border-radius: 12px; padding: 12px 14px; display: grid; gap: 8px; }
+.check .q { font-weight: 600; }
+.check .q::before { content: "Quick check  "; font-family: var(--mono); font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--accent); display: block; font-weight: 400; }
+.check button { justify-self: start; background: var(--accent-soft); color: var(--accent); border: 0; border-radius: 8px; padding: 8px 14px; font-family: var(--display); font-weight: 500; font-size: 15px; }
+.check .a { border-top: 1px dashed var(--line); padding-top: 8px; }
+.cite { font-size: 15px; color: var(--muted); }
+.nav { display: flex; gap: 10px; margin-top: 10px; }
+.nav button { flex: 1; border-radius: 12px; padding: 14px; font-family: var(--display); font-weight: 700; font-size: 16px; border: 2px solid var(--accent); }
+.nav .prev { background: none; color: var(--accent); flex: 0 0 auto; padding-inline: 18px; }
+.nav .next { background: var(--accent); color: var(--paper); }
+.tn { overflow-x: auto; background: var(--paper); border: 1px solid var(--line); border-radius: 10px; padding: 8px 6px; text-align: center; }
+.tn svg { max-width: 100%; height: auto; display: inline-block; }
+.tn-line { stroke: var(--ink); stroke-width: 1.6; fill: none; stroke-linecap: round; }
+.tn-line.thick { stroke-width: 3.6; }
+.tn-node > * { fill: var(--paper); stroke: var(--ink); stroke-width: 1.6; }
+.tn-node.soft > * { fill: var(--accent-soft); }
+.tn-node.accent > * { fill: var(--accent); stroke: var(--accent); }
+.tn-label { font-family: var(--mono); font-size: 12px; fill: var(--ink); }
+.tn-label.tight { font-size: 9.5px; }
+.tn-label.on-accent { fill: var(--paper); font-weight: 600; }
+.tn-idx { font-family: var(--body); font-style: italic; font-size: 12px; fill: var(--muted); }
+.tn-text { font-family: var(--body); font-size: 20px; fill: var(--ink); }
+.tn-text.small { font-size: 12.5px; fill: var(--muted); }
+.tn-box { fill: none; stroke: var(--muted); stroke-width: 1.2; stroke-dasharray: 4 4; }
+.tn-boxlabel { font-family: var(--mono); font-size: 11px; fill: var(--muted); }
+@media (prefers-reduced-motion: reduce) { .bar > span { transition: none; } }
+</style>
+
+<div class="wrap">
+
+<section id="home">
+  <div class="hero">
+    <div class="eyebrow">Companion to dmrg-from-scratch</div>
+    <h1>DMRG Pocket Course</h1>
+    <p><span id="nLessons">Thirty-four</span> short lessons, about two minutes each, from "why can't we store the wavefunction" to infinite DMRG and the Ising central charge. Each one ends with a quick check you can do in your head. The numbers in the amber boxes come from your own code.</p>
+    <div class="progress">
+      <div class="bar"><span id="bar"></span></div>
+      <small id="count">0 lessons done</small>
+    </div>
+    <button class="continue" id="continue" type="button">Start with lesson 1<span>The exponential wall</span></button>
+  </div>
+  <div id="units"></div>
+  <p class="foot">Your progress is saved in this browser only. <button class="linkbtn" id="reset" type="button">Clear progress</button><span id="resetConfirm" hidden> Clear all ticks? <button class="linkbtn" id="resetYes" type="button">Yes, clear</button> · <button class="linkbtn" id="resetNo" type="button">Keep</button></span></p>
+</section>
+
+<section id="reader" hidden>
+  <div class="topbar">
+    <button type="button" id="back">← All lessons</button>
+    <span class="pos" id="pos"></span>
+  </div>
+  <div id="stage"></div>
+  <div class="nav">
+    <button class="prev" type="button" id="prev">←</button>
+    <button class="next" type="button" id="next">Got it, next →</button>
+  </div>
+</section>
+
+<!-- Lessons. data-unit groups them; each needs data-title. -->
+<div id="lessons" hidden>
+
+<article data-unit="1" data-title="The exponential wall">
+<p>A quantum state of \(L\) spins-1/2 is a list of \(2^L\) complex amplitudes \(\psi_{s_1 s_2\cdots s_L}\). Each new spin doubles the list.</p>
+<div class="math">\(L = 50 \;\Rightarrow\; 2^{50} \approx 10^{15}\) amplitudes \(\approx 18\) petabytes</div>
+<p>Exact diagonalization stops around \(L \approx 40\) no matter how big the computer. To go further we need a way to store only the part of \(\psi\) that matters.</p>
+<p>DMRG's bet: ground states of local Hamiltonians are special. Almost all of those \(2^L\) numbers are redundant, and the redundancy is measured by entanglement.</p>
+<div class="check"><p class="q">How much memory does a complex state vector of 30 spins need, in double precision?</p><button type="button">Show answer</button><p class="a" hidden>\(2^{30} \approx 1.07\times10^9\) amplitudes × 16 bytes ≈ 17 GB. Doable on a big node, but 40 spins would need 17 TB.</p></div>
+</article>
+
+<article data-unit="1" data-title="The Schmidt decomposition">
+<p>Cut the chain into a left part and a right part. Reshape \(\psi\) into a matrix: rows label the left spins, columns the right spins. Its singular value decomposition is</p>
+<div class="math">\(|\psi\rangle = \sum_a S_a\, |a\rangle_L\, |a\rangle_R, \qquad S_1 \ge S_2 \ge \dots \ge 0,\;\; \sum_a S_a^2 = 1\)</div>
+<div class="tn" data-d="schmidt"></div>
+<p>The \(|a\rangle_L\) and \(|a\rangle_R\) are orthonormal states of each half. The singular values \(S_a\) are the <em>Schmidt values</em>. They tell you everything about the entanglement across that cut.</p>
+<p>One nonzero \(S_a\) means a product state: no entanglement. Many comparable \(S_a\) means strong entanglement.</p>
+<p class="code">In the code: <code>np.linalg.svd(psi.reshape(2**l, -1))</code>, used inside <code>dmrg.mps.from_dense</code>.</p>
+<div class="check"><p class="q">What are the Schmidt values of the Bell pair \((|00\rangle + |11\rangle)/\sqrt2\)?</p><button type="button">Show answer</button><p class="a" hidden>Two equal values, \(S_1 = S_2 = 1/\sqrt2\). The matrix is \(\tfrac{1}{\sqrt2}\mathbb{1}\).</p></div>
+</article>
+
+<article data-unit="1" data-title="Entanglement entropy">
+<p>Square the Schmidt values to get probabilities \(p_a = S_a^2\). The entanglement entropy of the cut is their Shannon entropy:</p>
+<div class="math">\(S = -\sum_a p_a \log_2 p_a\)</div>
+<p>We use base 2, so entropy is measured in <em>bits</em>: a Bell pair carries exactly 1 bit of entanglement.</p>
+<p>It is the von Neumann entropy of either half's reduced density matrix, whose eigenvalues are exactly the \(p_a\). If only \(\chi\) Schmidt values are nonzero, \(S \le \log_2 \chi\). Turn that around: a state with entropy \(S\) needs at least about \(2^{S}\) Schmidt values to be described well.</p>
+<p class="code">In the code: <code>dmrg.mps.entropy(S)</code>.</p>
+<div class="check"><p class="q">The GHZ state \((|00\cdots0\rangle + |11\cdots1\rangle)/\sqrt2\) of 10 spins. What is the entropy of any cut?</p><button type="button">Show answer</button><p class="a" hidden>1 bit for every cut, because there are always exactly two Schmidt values \(1/\sqrt2\). Lots of spins, very little entanglement per cut.</p></div>
+</article>
+
+<article data-unit="1" data-title="The area law">
+<p>A random state has entropy close to the maximum, \(L/2\) bits, at the middle cut. That is the <em>volume law</em>, and it is hopeless to compress.</p>
+<p>Ground states of gapped, local 1D Hamiltonians are different. Their entropy stays bounded as \(L\) grows: only spins near the cut are entangled across it. This is the 1D <em>area law</em> (Hastings, <a href="https://arxiv.org/abs/0705.2024">arXiv:0705.2024</a>).</p>
+<p>At a critical point the entropy grows, but only logarithmically. For a block of \(l\) sites in an infinite chain, \(S = \tfrac{c}{3}\log_2 l\), with \(c\) the central charge of the CFT.</p>
+<div class="data"><b>Your data</b>Open TFIM chain, \(L = 100\): the middle-cut entropy is about 0.84 bits at \(h = 1\), 0.22 bits at \(h = 1.5\), and almost 0 at \(h = 0.5\). Notebook 3.</div>
+<div class="check"><p class="q">Why does the area law make ground states compressible?</p><button type="button">Show answer</button><p class="a" hidden>Bounded entropy means the Schmidt values decay fast, so a fixed number \(\chi\) of them captures the state at every cut, independent of \(L\).</p></div>
+</article>
+
+<article data-unit="1" data-title="Truncation">
+<p>If the Schmidt values decay fast, throw away the small ones. Keep the largest \(\chi\) and renormalize. The squared error of the state is the weight you discarded:</p>
+<div class="math">\(\varepsilon = \sum_{a > \chi} S_a^2\)</div>
+<p>This is the best possible rank-\(\chi\) approximation of that cut (the Eckart–Young theorem). \(\chi\) is called the <em>bond dimension</em>, and it is the single knob that controls DMRG's accuracy and cost.</p>
+<div class="data"><b>Your data</b>Ground state of 12 spins at \(h = 1\), full \(\chi = 64\). Keeping \(\chi = 4\) gives infidelity \(6\times10^{-6}\). Keeping \(\chi = 8\) gives \(9\times10^{-10}\). Notebook 1.</div>
+<div class="check"><p class="q">The Schmidt values squared are 0.9, 0.09, 0.009, 0.001. What is the error if you keep \(\chi = 2\)?</p><button type="button">Show answer</button><p class="a" hidden>\(\varepsilon = 0.009 + 0.001 = 0.01\), so fidelity about 0.99.</p></div>
+</article>
+
+<article data-unit="2" data-title="Reading tensor diagrams">
+<p>From here on we draw tensors as pictures. There are only two rules. A shape is a tensor, a block of numbers. Each line sticking out of it is one index: a vector has one leg, a matrix two, a 3-index tensor three.</p>
+<div class="tn" data-d="intro_shapes"></div>
+<p>Joining two legs means summing over that index. Two matrices joined by a leg are their matrix product, \((AB)_{ik} = \sum_j A_{ij}B_{jk}\):</p>
+<div class="tn" data-d="intro_contract"></div>
+<p>The open legs that remain tell you what the result is. A state of three spins is one tensor with three open legs, one per spin:</p>
+<div class="tn" data-d="intro_psi"></div>
+<p>Later lessons give shapes extra meaning: diamonds hold Schmidt values, triangles are tensors in canonical form, squares are pieces of the Hamiltonian, and a thick line is several indices grouped into one.</p>
+<div class="check"><p class="q">What do you get if you join the two legs of a matrix to each other?</p><button type="button">Show answer</button><p class="a" hidden>Its trace, \(\sum_i M_{ii}\). No open legs are left, so the result is a single number.</p></div>
+</article>
+
+<article data-unit="2" data-title="A state is a table of numbers">
+<p>We will build a matrix product state by hand for a real ground state: three spins of the transverse-field Ising chain \(H = -\sum_i Z_iZ_{i+1} - h\sum_i X_i\) at the critical point \(h = 1\).</p>
+<p>A state of three spins is 8 numbers \(\psi_{s_1 s_2 s_3}\), one for each pattern. Rounded to three digits, the ground state is:</p>
+<div class="math">\(\begin{array}{cccccccc} 000 & 001 & 010 & 011 & 100 & 101 & 110 & 111 \\ 0.532 & 0.296 & 0.204 & 0.296 & 0.296 & 0.204 & 0.296 & 0.532 \end{array}\)</div>
+<p>Our goal over the next few lessons: rewrite these 8 numbers as three small pieces, one per spin, that multiply together to give back any \(\psi_{s_1 s_2 s_3}\) we ask for. Those pieces are the MPS.</p>
+<div class="check"><p class="q">Why is \(\psi_{000} = \psi_{111}\), and \(\psi_{001} = \psi_{110}\)?</p><button type="button">Show answer</button><p class="a" hidden>Flipping every spin, \(\prod_i X_i\), commutes with \(H\), and the ground state is symmetric under it. So each pattern and its flipped partner have the same amplitude.</p></div>
+</article>
+
+<article data-unit="2" data-title="Step 1: reshape into a matrix">
+<p>Arrange the 8 numbers in a grid. Let the <strong>row</strong> be the first spin \(s_1\) (2 rows) and the <strong>column</strong> be the other two spins \(s_2 s_3\) (4 columns: 00, 01, 10, 11):</p>
+<div class="math">\(M = \begin{pmatrix} 0.532 & 0.296 & 0.204 & 0.296 \\ 0.296 & 0.204 & 0.296 & 0.532 \end{pmatrix}\begin{matrix} \leftarrow s_1 = 0 \\ \leftarrow s_1 = 1 \end{matrix}\)</div>
+<div class="tn" data-d="step1"></div>
+<p>Nothing was computed. These are the same 8 numbers, only laid out differently. In NumPy it is <code>psi.reshape(2, 4)</code>.</p>
+<p>Why bother? This matrix is exactly the cut between spin 1 and the rest. Its singular values are the Schmidt values of that cut (lesson 2), so the next step will tell us how strongly spin 1 is entangled with spins 2 and 3.</p>
+<div class="check"><p class="q">Which entry of \(M\) holds \(\psi_{110}\)?</p><button type="button">Show answer</button><p class="a" hidden>Row \(s_1 = 1\), column \(s_2 s_3 = 10\): bottom row, third entry, 0.296.</p></div>
+</article>
+
+<article data-unit="2" data-title="Step 2: split off the first spin">
+<p>Take the SVD, \(M = U\,S\,V^\dagger\). A computer gives</p>
+<div class="tn" data-d="step2a"></div>
+<div class="math">\(U = \begin{pmatrix} 0.707 & 0.707 \\ 0.707 & -0.707 \end{pmatrix}, \qquad S = \begin{pmatrix} 0.967 & 0 \\ 0 & 0.254 \end{pmatrix}\)</div>
+<div class="math">\(V^\dagger = \begin{pmatrix} 0.605 & 0.366 & 0.366 & 0.605 \\ 0.660 & 0.254 & -0.254 & -0.660 \end{pmatrix}\)</div>
+<p>Multiplying \(S\) into \(V^\dagger\) scales its rows by the Schmidt values:</p>
+<div class="math">\(SV^\dagger = \begin{pmatrix} 0.585 & 0.354 & 0.354 & 0.585 \\ 0.168 & 0.064 & -0.064 & -0.168 \end{pmatrix}\)</div>
+<p>Look at what each factor depends on. \(U\) has rows labelled by \(s_1\) only. \(SV^\dagger\) has columns labelled by \(s_2 s_3\) only. They are glued by a new, summed index \(a\), the column of \(U\) and the row of \(SV^\dagger\):</p>
+<div class="math">\(\psi_{s_1, s_2 s_3} = \sum_{a=1}^{2} U_{s_1 a}\,\big(SV^\dagger\big)_{a,\, s_2 s_3}\)</div>
+<div class="tn" data-d="step2b"></div>
+<p><strong>Keep \(U\) as the tensor of spin 1.</strong> The index \(a\) is a <em>bond</em>: the only channel through which spin 1 talks to the rest. The Schmidt values 0.967 and 0.254 say spin 1 is entangled, but not much: 0.34 bits.</p>
+<div class="check"><p class="q">If we kept only the largest Schmidt value, what squared error would this cut make?</p><button type="button">Show answer</button><p class="a" hidden>The discarded weight \(0.254^2 \approx 0.065\) (lesson 5). The bond would shrink from 2 to 1.</p></div>
+</article>
+
+<article data-unit="2" data-title="Step 3: split off the second spin">
+<p>What is left is \(R = SV^\dagger\), with rows \(a\) and columns \(s_2 s_3\). Do the same trick again, but now let the row be the pair \((a, s_2)\) and the column be \(s_3\):</p>
+<div class="math">\(R' = \begin{pmatrix} 0.585 & 0.354 \\ 0.354 & 0.585 \\ 0.168 & 0.064 \\ -0.064 & -0.168 \end{pmatrix}\begin{matrix} \leftarrow a{=}1,\, s_2{=}0 \\ \leftarrow a{=}1,\, s_2{=}1 \\ \leftarrow a{=}2,\, s_2{=}0 \\ \leftarrow a{=}2,\, s_2{=}1 \end{matrix}\)</div>
+<p>Again the same 8 numbers, rearranged. SVD again, \(R' = U' S' V'^\dagger\):</p>
+<div class="math">\(U' = \begin{pmatrix} 0.686 & 0.646 \\ 0.686 & -0.646 \\ 0.170 & 0.288 \\ -0.170 & 0.288 \end{pmatrix}, \qquad S' = \begin{pmatrix} 0.967 & 0 \\ 0 & 0.254 \end{pmatrix}\)</div>
+<div class="math">\(V'^\dagger = \begin{pmatrix} 0.707 & 0.707 \\ 0.707 & -0.707 \end{pmatrix}, \qquad S'V'^\dagger = \begin{pmatrix} 0.684 & 0.684 \\ 0.179 & -0.179 \end{pmatrix}\)</div>
+<p>A new bond \(b\) of size 2 appears between spins 2 and 3. <strong>Keep \(U'\) as the tensor of spin 2.</strong> It has three indices: the old bond \(a\) on its left, its own spin \(s_2\), and the new bond \(b\) on its right. <strong>The leftover \(S'V'^\dagger\) is the tensor of spin 3</strong>, with indices \(b\) and \(s_3\).</p>
+<div class="tn" data-d="step3"></div>
+<p class="code">In the code this loop is <code>dmrg.from_dense</code>: reshape, SVD, keep \(U\), carry \(SV^\dagger\) on.</p>
+<div class="check"><p class="q">The new Schmidt values \(S'\) are again 0.967 and 0.254. Why the same as at the first cut?</p><button type="button">Show answer</button><p class="a" hidden>The cut between spins 2 and 3 is the mirror image of the cut between spins 1 and 2, and the open 3-site chain is symmetric under reflection.</p></div>
+</article>
+
+<article data-unit="2" data-title="Step 4: read the state back">
+<p>We now have one piece per spin. Fixing the spin value turns each piece into a small matrix. Rows of \(U\) give spin 1; the rows of \(U'\) with \(s_2 = 0\) or \(1\) give spin 2; the columns of \(S'V'^\dagger\) give spin 3:</p>
+<div class="math">\(A_1^{0} = (0.707\;\;0.707),\qquad A_1^{1} = (0.707\;\;{-0.707})\)</div>
+<div class="math">\(A_2^{0} = \begin{pmatrix} 0.686 & 0.646 \\ 0.170 & 0.288 \end{pmatrix},\qquad A_2^{1} = \begin{pmatrix} 0.686 & -0.646 \\ -0.170 & 0.288 \end{pmatrix}\)</div>
+<div class="math">\(A_3^{0} = \begin{pmatrix} 0.684 \\ 0.179 \end{pmatrix},\qquad A_3^{1} = \begin{pmatrix} 0.684 \\ -0.179 \end{pmatrix}\)</div>
+<p>To get any amplitude, pick the matrix matching each spin and multiply them in order:</p>
+<div class="math">\(\psi_{s_1 s_2 s_3} = A_1^{s_1}\,A_2^{s_2}\,A_3^{s_3}\)</div>
+<div class="tn" data-d="step4"></div>
+<p>For \(\psi_{000}\): \((0.707\;\;0.707)\,A_2^0 = (0.605\;\;0.660)\), then \(0.605\times0.684 + 0.660\times0.179 = 0.532\). It matches the table. A row vector, times a matrix, times a column vector gives a number. That is why this is called a <em>matrix product</em> state.</p>
+<div class="check"><p class="q">Compute \(\psi_{010}\) the same way.</p><button type="button">Show answer</button><p class="a" hidden>\((0.707\;\;0.707)\,A_2^{1} = (0.365\;\;{-0.253})\), then \(0.365\times0.684 - 0.253\times0.179 \approx 0.204\). It matches.</p></div>
+</article>
+
+<article data-unit="2" data-title="The same recipe for any length">
+<p>For \(L\) spins, repeat step 3 until one spin is left: reshape, SVD, keep \(U\), carry \(SV^\dagger\) to the right. You always end with</p>
+<div class="math">\(\psi_{s_1 s_2 \cdots s_L} = A_1^{s_1} A_2^{s_2} \cdots A_L^{s_L}\)</div>
+<div class="tn" data-d="chainL"></div>
+<p>In code each site is one 3-index array <code>A[left, phys, right]</code>: left bond, spin, right bond. The first site's left bond and the last site's right bond have size 1, which is why the product comes out as a number.</p>
+<p>Notice that our 3-spin MPS holds \(4 + 8 + 4 = 16\) numbers (\(A_1\) is \(2\times2\), \(A_2\) is \(2\times2\times2\), \(A_3\) is \(2\times2\)), twice the 8 we started with. Compression only appears for long chains, where two facts take over:</p>
+<ul>
+<li>Done exactly, the bonds grow up to \(2^{L/2}\) in the middle.</li>
+<li>At each SVD we can keep only the largest \(\chi\) Schmidt values (lesson 5). For ground states the discarded weight is tiny even at modest \(\chi\), so every bond stays small while \(L\) grows.</li>
+</ul>
+<p class="code">In the code: <code>dmrg.from_dense(psi, L)</code>, and back with <code>dmrg.to_dense(mps)</code>.</p>
+<div class="check"><p class="q">What are the bond sizes of an exact MPS for a random 8-spin state?</p><button type="button">Show answer</button><p class="a" hidden>1, 2, 4, 8, 16, 8, 4, 2, 1. Each bond is limited by the smaller side of its cut, \(\min(2^l, 2^{L-l})\). A random state is volume-law entangled, so truncating it would lose a lot.</p></div>
+</article>
+
+<article data-unit="2" data-title="Counting parameters">
+<p>An MPS has \(L\) tensors of size at most \(\chi \times d \times \chi\), with \(d = 2\) for spins. So the storage is about</p>
+<div class="math">\(L\, d\, \chi^2 \quad\text{instead of}\quad d^{L}\)</div>
+<p>Linear in \(L\) instead of exponential. The price is that not every state fits: only states whose entanglement is at most about \(\log_2\chi\) bits at every cut. By the area law, ground states do.</p>
+<div class="check"><p class="q">How many numbers does an MPS with \(L = 100\), \(d = 2\), \(\chi = 64\) hold?</p><button type="button">Show answer</button><p class="a" hidden>\(100 \times 2 \times 64^2 \approx 8\times10^5\). Under 7 MB. The full vector would have \(2^{100} \approx 10^{30}\) entries.</p></div>
+</article>
+
+<article data-unit="2" data-title="Gauge freedom">
+<p>Take any invertible matrix \(X\) and insert \(X X^{-1} = \mathbb{1}\) on a bond:</p>
+<div class="math">\(A_i \to A_i X, \qquad A_{i+1} \to X^{-1} A_{i+1}\)</div>
+<div class="tn" data-d="gauge"></div>
+<p>The state does not change, but the tensors do. So the MPS of a state is far from unique. This looks like a nuisance. It is actually a tool: we can choose \(X\) to make the tensors as convenient as possible. Those convenient choices are the <em>canonical forms</em>, next.</p>
+<div class="check"><p class="q">If you multiply \(A_3\) by 2 and \(A_7\) by 1/2, does the state change?</p><button type="button">Show answer</button><p class="a" hidden>No. Scalars commute through the product, so the factors cancel. It is the simplest gauge transformation.</p></div>
+</article>
+
+<article data-unit="2" data-title="Tensors that cancel">
+<p>Go back to the \(U\) you kept in Step 2:</p>
+<div class="math">\(U = \begin{pmatrix} 0.707 & 0.707 \\ 0.707 & -0.707 \end{pmatrix}\)</div>
+<p>Its two columns are orthonormal. Each has length 1, \(0.707^2 + 0.707^2 = 1\), and they are perpendicular, \(0.707\times0.707 + 0.707\times(-0.707) = 0\). In matrix language, \(U^\dagger U = \mathbb{1}\).</p>
+<p>Now draw it. Put \(U\) on top of its complex conjugate \(U^*\) and join their spin legs. Joining \(s_1\) sums over it, which is exactly \(U^\dagger U\). So the pair is the identity, a plain line from \(a\) to \(a'\):</p>
+<div class="tn" data-d="uu"></div>
+<p>We draw such tensors as triangles pointing right. <strong>A triangle joined to its mirror image collapses into a line.</strong></p>
+<p>This is not luck. Every \(U\) from an SVD has orthonormal columns, so every tensor the recipe kept, \(U\) and \(U'\), is a triangle. They are called <em>left-canonical</em>.</p>
+<div class="check"><p class="q">Is \(U'\) from Step 3 a triangle too? Its first column is \((0.686,\ 0.686,\ 0.170,\ -0.170)\). Square these four entries and add them: do you get 1?</p><button type="button">Show answer</button><p class="a" hidden>Yes: \(0.686^2 + 0.686^2 + 0.170^2 + 0.170^2 = 0.471 + 0.471 + 0.029 + 0.029 = 1.00\). The second column, \((0.646,\ -0.646,\ 0.288,\ 0.288)\), also gives 1, and multiplying the two columns entry by entry and adding gives 0. So \(U'^\dagger U' = \mathbb{1}\). For \(U'\) the joined legs are its left bond \(a\) and its spin \(s_2\); only \(b\) stays open.</p></div>
+</article>
+
+<article data-unit="2" data-title="Why cancelling matters">
+<p>Measure something. How much does spin 3 point along \(x\)? That is \(\langle\psi|X_3|\psi\rangle\). As a diagram: the MPS on top, its conjugate below, all spin legs joined, with the operator \(X\) inserted on spin 3:</p>
+<div class="tn" data-d="exp_full"></div>
+<p>Start from the left. \(A_1\) and \(A_1^*\) are a triangle pair joined on their spin leg, so they collapse into a line:</p>
+<div class="tn" data-d="exp_1"></div>
+<p>Now \(A_2\) and \(A_2^*\) are joined on their left (by that line) and on their spin leg. Same pattern, so they collapse too:</p>
+<div class="tn" data-d="exp_2"></div>
+<p>Only spin 3's own tensor is left. With \(A_3^{0} = (0.684,\ 0.179)\) and \(A_3^{1} = (0.684,\ -0.179)\), and \(X\) swapping \(0 \leftrightarrow 1\):</p>
+<div class="math">\(\langle X_3\rangle = 2\,A_3^{0}\cdot A_3^{1} = 2\,(0.684^2 - 0.179^2) = 0.872\)</div>
+<p>The exact value is 0.871; the gap is rounding. The first two spins never entered the arithmetic. This is why DMRG keeps its tensors canonical: anything measured at the non-triangle site only needs that site, because the rest of the chain cancels.</p>
+<div class="check"><p class="q">What do you get if you leave out \(X\) in the last picture?</p><button type="button">Show answer</button><p class="a" hidden>The norm \(\langle\psi|\psi\rangle\): the sum of the squared entries of \(A_3\), \(0.684^2 + 0.684^2 + 0.179^2 + 0.179^2 = 1.00\).</p></div>
+</article>
+
+<article data-unit="2" data-title="Right-canonical: the mirror image">
+<p>Run the recipe from the right end instead: split off spin 3 first, keep \(V^\dagger\) as its tensor, and carry \(US\) to the left. Each kept \(V^\dagger\) has orthonormal rows, \(V^\dagger V = \mathbb{1}\).</p>
+<p>We draw it as a triangle pointing left and call it \(B\). It cancels with its conjugate when they are joined from the right:</p>
+<div class="tn" data-d="rightcanon"></div>
+<p>So the rule for both kinds is the same: <strong>a triangle cancels when you join it to its mirror image on every leg except the one it points toward.</strong></p>
+<p>You never need the full state to get canonical tensors. Sweep along any MPS and re-split each tensor with an SVD (or a cheaper QR decomposition), pushing the leftover into the next site.</p>
+<p class="code">In the code: <code>dmrg.left_canonicalize</code> and <code>dmrg.right_canonicalize</code>.</p>
+<div class="check"><p class="q">A right-canonical \(B\) has legs \(a\) (left), \(s\) (spin), \(b\) (right). Which legs do you join with \(B^*\) to make it cancel?</p><button type="button">Show answer</button><p class="a" hidden>\(s\) and \(b\). The left leg \(a\), the side the triangle points to, stays open, and the pair becomes a line from \(a\) to \(a'\).</p></div>
+</article>
+
+<article data-unit="2" data-title="The mixed canonical form">
+<p>Make everything left of a bond left-canonical and everything right of it right-canonical:</p>
+<div class="math">\(|\psi\rangle = A_1 \cdots A_i \; C \; B_{i+1} \cdots B_L\)</div>
+<div class="tn" data-d="mixed"></div>
+<p>Our 3-spin example is already in this form: \(A_1\) and \(A_2\) are triangles and \(A_3 = S'V'^\dagger\) is the centre \(C\).</p>
+<p>All the information about the state's norm and entanglement now sits in the small matrix \(C\) at the centre. Because both blocks are orthonormal bases, \(\langle\psi|\psi\rangle = \sum |C_{ab}|^2\), and the singular values of \(C\) are the Schmidt values of that cut.</p>
+<p>This is the form DMRG works in. It moves the centre site by site and always optimizes at the centre.</p>
+<div class="check"><p class="q">Why is it cheap to read off entanglement in this form?</p><button type="button">Show answer</button><p class="a" hidden>You only need the SVD of the \(\chi\times\chi\) matrix \(C\), not anything involving the rest of the chain.</p></div>
+</article>
+
+<article data-unit="2" data-title="Overlaps without the full vector">
+<p>The overlap \(\langle\phi|\psi\rangle\) of two MPS is a ladder: the tensors \(A\) of \(\psi\) on top, the conjugated tensors \(B^*\) of \(\phi\) below, spin legs joined:</p>
+<div class="tn" data-d="overlap"></div>
+<p>Contracting everything at once would rebuild the \(2^L\) vector. Instead, zip the ladder up from the left, one rung at a time. Keep a small matrix \(E\) that holds everything contracted so far (the dashed box). It has two open legs: the bond sticking out of the top row, and the one sticking out of the bottom row.</p>
+<p>Where does \(E\) start? The first tensors \(A_1\) and \(B_1\) have a left bond of size 1 (a leg with only one value, drawn or not). Before anything is contracted, \(E\) is the \(1\times1\) matrix \((1)\): it multiplies by one and changes nothing. With that start, the first rung uses the same step as every other rung, so no special case is needed for the edge.</p>
+<p>One step of the zipper joins \(E\) to the next rung and gives a new \(E\):</p>
+<div class="tn" data-d="zip_step"></div>
+<p>In formulas, summing over the three joined legs \(x\), \(y\) and \(s\):</p>
+<div class="math">\(E^\text{new}_{ab} = \sum_{x,\,y,\,s} E_{xy}\; A^{s}_{xa}\; \overline{B^{s}_{yb}}\)</div>
+<p>Each step costs about \(d\chi^3\), so the whole overlap costs \(L d \chi^3\) instead of \(2^L\). At the right end both open bonds have size 1, and \(E\) is a single number: the overlap. Expectation values work the same way with an operator in the middle (lesson 20 onward).</p>
+<p class="code">In the code: <code>dmrg.overlap</code>.</p>
+<div class="check"><p class="q">What size is \(E\) in the middle of the chain, if every bond has dimension \(\chi\)?</p><button type="button">Show answer</button><p class="a" hidden>\(\chi \times \chi\): one leg for the top bond, one for the bottom bond. It never grows with \(L\).</p></div>
+</article>
+
+<article data-unit="3" data-title="Operators as chains">
+<p>An MPS writes a state as a chain of tensors. A <em>matrix product operator</em> (MPO) does the same for an operator such as the Hamiltonian. Each site gets a 4-index tensor:</p>
+<pre>W[w_left, w_right, out, in]</pre>
+<div class="tn" data-d="mpo"></div>
+<p>Two physical legs (bra side and ket side) and two bond legs. Read it as a small matrix in the bond indices whose entries are \(2\times2\) operators. The product of these matrices along the chain gives \(H\).</p>
+<p>Why bother? DMRG never builds \(H\) as a \(2^L\times2^L\) matrix. It only ever contracts the MPO with the MPS, which is cheap.</p>
+<div class="check"><p class="q">How many legs does a site tensor of \(\langle\psi|H|\psi\rangle\) have in total, counting MPS, MPO and conjugate MPS?</p><button type="button">Show answer</button><p class="a" hidden>3 + 4 + 3 = 10 legs, but the physical ones are contracted in pairs, leaving three horizontal bonds (ket, MPO, bra) on each side.</p></div>
+</article>
+
+<article data-unit="3" data-title="The TFIM as a little machine">
+<p>For \(H = -\sum_i X_iX_{i+1} - h\sum_i Z_i\), read the chain left to right with a 3-state machine. State 0: nothing placed yet. State 1: an \(X\) was just placed, the next site must close it. State 2: a term is finished.</p>
+<div class="math">\(W = \begin{pmatrix} \mathbb{1} & X & -hZ \\ 0 & 0 & -X \\ 0 & 0 & \mathbb{1} \end{pmatrix}\)</div>
+<p>Row = state before the site, column = state after. Multiply \(W W \cdots W\) and keep the corner entry (0, 2). Every path from 0 to 2 is one term of \(H\). The first site keeps only row 0 and the last only column 2.</p>
+<p class="code">In the code: <code>dmrg.tfim_bulk_tensor(h)</code> and <code>dmrg.tfim_mpo(L, h)</code>.</p>
+<div class="check"><p class="q">Which path through the machine produces the term \(-hZ_3\) on a 5-site chain?</p><button type="button">Show answer</button><p class="a" hidden>Stay in 0 on sites 1 and 2 (identities), jump 0→2 on site 3 (picking \(-hZ\)), stay in 2 on sites 4 and 5.</p></div>
+</article>
+
+<article data-unit="3" data-title="MPO bond dimensions">
+<p>The size of the machine is the MPO bond dimension \(D\). It sets part of DMRG's cost.</p>
+<ul>
+<li>TFIM: \(D = 3\).</li>
+<li>Heisenberg \(\vec S_i\cdot\vec S_{i+1}\): \(D = 5\) (one "open" state each for \(S^x, S^y, S^z\), or \(S^+, S^-, S^z\)).</li>
+<li>Exponentially decaying \(\sum_{i&lt;j} e^{-(j-i)/\xi} X_iX_j\): still \(D = 3\). The open state can loop on itself with weight \(e^{-1/\xi}\).</li>
+</ul>
+<p>Power-law interactions have no exact finite MPO. People fit them by a sum of exponentials.</p>
+<div class="check"><p class="q">What changes in the TFIM machine if you add a longitudinal field \(-g\sum_i X_i\)?</p><button type="button">Show answer</button><p class="a" hidden>Only the corner entry: \(W_{0,2} = -hZ - gX\). Single-site terms all live in the 0→2 jump.</p></div>
+</article>
+
+<article data-unit="3" data-title="Exact answers to test against">
+<p>The TFIM maps to free fermions by the Jordan–Wigner transformation (Lieb, Schultz and Mattis 1961; Pfeuty 1970). That gives exact energies to check DMRG at any size.</p>
+<p>Open chain: let \(M\) be the \(L\times L\) matrix with \(h\) on the diagonal and 1 just above it. With \(s_n\) its singular values,</p>
+<div class="math">\(E_0 = -\sum_n s_n\)</div>
+<p>Infinite chain, energy per site:</p>
+<div class="math">\(e_0 = -\frac{1}{\pi}\int_0^\pi \sqrt{1 + h^2 - 2h\cos k}\;dk, \qquad e_0(h{=}1) = -\tfrac{4}{\pi}\)</div>
+<p class="code">In the code: <code>dmrg.tfim_open_energy</code> and <code>dmrg.tfim_infinite_energy_density</code>.</p>
+<div class="check"><p class="q">Check the open-chain formula for \(L = 1\).</p><button type="button">Show answer</button><p class="a" hidden>\(M = (h)\), so \(E_0 = -|h|\). That is right: \(H = -hZ\) has eigenvalues \(\pm h\).</p></div>
+</article>
+
+<article data-unit="4" data-title="The variational idea">
+<p>DMRG is a variational method. Among all MPS with bond dimension \(\chi\), find the one with the lowest energy</p>
+<div class="math">\(E = \frac{\langle\psi|H|\psi\rangle}{\langle\psi|\psi\rangle}\)</div>
+<p>Note the difference from lessons 7 to 12. There we cut up a state we already had. DMRG cannot do that, because the full ground state is the \(2^L\) table we can never store. It has to find the MPS directly.</p>
+<p>Optimizing all tensors at once is a hard nonlinear problem. DMRG does the next best thing: optimize one or two neighbouring tensors with all the others fixed, then move on, and sweep back and forth until nothing changes. Each local step can only lower the energy.</p>
+<p class="cite">White, PRL 69, 2863 (1992); the MPS view: Schollwöck, <a href="https://arxiv.org/abs/1008.3477">arXiv:1008.3477</a>, Sec. 6.</p>
+<div class="check"><p class="q">Is the DMRG energy an upper bound or a lower bound on the true ground energy?</p><button type="button">Show answer</button><p class="a" hidden>An upper bound, as for any variational state. That is why your errors \(E_\text{DMRG} - E_\text{exact}\) are always positive.</p></div>
+</article>
+
+<article data-unit="4" data-title="Environments">
+<p>Fix the two sites \(i, i{+}1\) that we want to optimize. Everything else in \(\langle\psi|H|\psi\rangle\) can be contracted ahead of time into two blocks:</p>
+<ul>
+<li>the <em>left environment</em> <code>L[ket, mpo, bra]</code>: sites \(1\ldots i{-}1\),</li>
+<li>the <em>right environment</em> <code>R[ket, mpo, bra]</code>: sites \(i{+}2\ldots L\).</li>
+</ul>
+<div class="tn" data-d="sandwich"></div>
+<p>In the picture the two highlighted columns are the sites being optimized. Everything inside the dashed boxes is contracted once and stored.</p>
+<p>When the optimization moves one site to the right, the new left environment is the old one plus one site, a single small contraction. So DMRG caches all environments and updates them as it sweeps.</p>
+<p class="code">In the code: <code>grow_left(L, A, W)</code> and <code>grow_right(R, B, W)</code> in <code>dmrg/finite.py</code>.</p>
+<div class="check"><p class="q">What shape is a left environment at a bond of dimension \(\chi\), for the TFIM?</p><button type="button">Show answer</button><p class="a" hidden>\(\chi \times 3 \times \chi\): ket bond, MPO bond (\(D = 3\)), bra bond.</p></div>
+</article>
+
+<article data-unit="4" data-title="The effective Hamiltonian">
+<p>Merge the two site tensors into one \(\theta[a, s_1, s_2, b]\). The state is linear in \(\theta\). And because the left and right blocks are orthonormal bases (mixed canonical form), \(\langle\psi|\psi\rangle = |\theta|^2\). Minimizing the energy over \(\theta\) then becomes an ordinary eigenvalue problem:</p>
+<div class="math">\(H_\text{eff}\,\theta = E\,\theta\)</div>
+<div class="tn" data-d="heff"></div>
+<p>\(H_\text{eff}\) is \(L\), \(W_i\), \(W_{i+1}\), \(R\) contracted together: the full Hamiltonian, projected onto the basis the rest of the MPS defines.</p>
+<p>Without canonical form you would get a generalized problem \(H\theta = E N\theta\) with a possibly ill-conditioned \(N\).</p>
+<div class="check"><p class="q">How long is the vector \(\theta\) for \(\chi = 64\), \(d = 2\)?</p><button type="button">Show answer</button><p class="a" hidden>\(\chi \cdot d \cdot d \cdot \chi = 64\cdot2\cdot2\cdot64 = 16\,384\).</p></div>
+</article>
+
+<article data-unit="4" data-title="Lanczos: matvecs only">
+<p>A dense \(H_\text{eff}\) of size \(16384^2\) would have \(2.7\times10^8\) entries. We never build it. The Lanczos method finds the lowest eigenvector using only the map \(\theta \mapsto H_\text{eff}\theta\). It builds the Krylov space \(\{\theta, H\theta, H^2\theta, \ldots\}\) and diagonalizes \(H\) inside it. Extreme eigenvalues converge in a few dozen steps.</p>
+<p>To apply \(H_\text{eff}\), follow the picture in "The effective Hamiltonian" one tensor at a time: join \(L\) to \(\theta\), then \(W_i\), then \(W_{i+1}\), then \(R\). Each step is one small contraction, so the cost is about \(D d^2 \chi^3\), far less than the \(d^4\chi^4\) of multiplying by a dense matrix.</p>
+<div class="data"><b>Your data</b>scipy's <code>eigsh</code> needed about 38 matvecs per local solve on the \(L = 40\) chain.</div>
+<div class="check"><p class="q">Why start Lanczos from the current \(\theta\) rather than a random vector?</p><button type="button">Show answer</button><p class="a" hidden>After the first sweep the current \(\theta\) is already close to the answer, so Lanczos converges in far fewer steps.</p></div>
+</article>
+
+<article data-unit="4" data-title="Split, truncate, move">
+<p>After solving for \(\theta\), split it back into two sites with an SVD. This is the same move you did by hand in "Step 2: split off the first spin": reshape, SVD, keep \(U\), pass \(SV^\dagger\) on. The difference is that DMRG never has the whole state to cut up. It only ever splits this one small two-site tensor, which it just found by minimizing the energy.</p>
+<div class="math">\(\theta_{(a s_1),(s_2 b)} = \sum_{k=1}^{\chi} U_{(a s_1),k}\, S_k\, V^\dagger_{k,(s_2 b)}\)</div>
+<div class="tn" data-d="split"></div>
+<p>Keep at most \(\chi\) singular values. This is where the approximation happens, and the discarded weight tells you how big it is. Sweeping right, \(U\) becomes the new left-canonical \(A_i\) and \(SV^\dagger\) moves into site \(i{+}1\). Sweeping left, do the mirror image.</p>
+<p>Optimizing two sites lets the bond between them grow, up to \(\chi\). One-site DMRG cannot grow bonds on its own and needs a "mixer" (White, <a href="https://arxiv.org/abs/cond-mat/0508709">arXiv:cond-mat/0508709</a>).</p>
+<div class="check"><p class="q">Right after the split, where is the orthogonality centre?</p><button type="button">Show answer</button><p class="a" hidden>On site \(i{+}1\), which holds \(SV^\dagger\). That is exactly where the next two-site step (sites \(i{+}1, i{+}2\)) needs it.</p></div>
+</article>
+
+<article data-unit="4" data-title="Sweeping">
+<p>One sweep: optimize bonds \((1,2), (2,3), \ldots, (L{-}1, L)\), then come back. Each step updates one environment. After a few sweeps the energy stops changing.</p>
+<pre>for i in range(L - 1):        # left to right
+    theta = A[i] @ A[i+1]
+    E, theta = solve(Lenv[i], W[i], W[i+1], Renv[i+2], theta)
+    A[i], A[i+1] = split(theta)      # A[i] left-canonical
+    Lenv[i+1] = grow_left(Lenv[i], A[i], W[i])
+# then the same from right to left</pre>
+<div class="data"><b>Your data</b>\(L = 40\), \(h = 1\), \(\chi = 32\): the energy is \(-50.56943379\ldots\) after sweep 2 and agrees with the exact result to \(10^{-13}\). About 10 seconds.</div>
+<div class="check"><p class="q">Why start from a right-canonical MPS?</p><button type="button">Show answer</button><p class="a" hidden>So that all right environments can be built at once before the first left-to-right half sweep, and every block to the right of the centre is an orthonormal basis.</p></div>
+</article>
+
+<article data-unit="4" data-title="How good is the answer?">
+<p>When no exact answer exists, use the discarded weight. The energy error is roughly proportional to it, so you can run several \(\chi\) values and extrapolate the energy to zero discarded weight.</p>
+<div class="data"><b>Your data</b>\(L = 40\), \(h = 1\). Energy error from \(\chi = 2\) to 16: \(7\times10^{-2}\), \(2\times10^{-3}\), \(5\times10^{-5}\), \(1\times10^{-5}\), \(7\times10^{-8}\), \(1\times10^{-9}\). On a log–log plot against the discarded weight, it is a straight line. Notebook 3.</div>
+<p>Also check that the energy has stopped changing between sweeps, and that observables such as \(S(l)\) are stable as \(\chi\) grows.</p>
+<div class="check"><p class="q">Doubling \(\chi\) multiplies the cost of each matvec by about how much?</p><button type="button">Show answer</button><p class="a" hidden>About 8, since the cost scales as \(\chi^3\).</p></div>
+</article>
+
+<article data-unit="4" data-title="Measuring the central charge">
+<p>For an open critical chain, conformal field theory predicts how the entropy depends on the cut position \(l\) (Calabrese and Cardy, <a href="https://arxiv.org/abs/hep-th/0405152">arXiv:hep-th/0405152</a>):</p>
+<div class="math">\(S(l) = \frac{c}{6}\log_2\!\Big[\frac{2L}{\pi}\sin\frac{\pi l}{L}\Big] + \text{const}\)</div>
+<p>DMRG gives \(S(l)\) for every cut for free, from the Schmidt values of the last sweep. A straight-line fit against the bracket gives \(c\). The Ising transition has \(c = 1/2\).</p>
+<div class="data"><b>Your data</b>\(L = 100\), \(h = 1\), \(\chi = 32\): fit gives \(c \approx 0.53\). The small excess comes from even/odd oscillations near the open ends.</div>
+<div class="check"><p class="q">For a periodic chain the prefactor is \(c/3\), not \(c/6\). Why?</p><button type="button">Show answer</button><p class="a" hidden>A block in a ring has two boundaries with the rest of the system; a block at the end of an open chain has one. Each boundary contributes \(c/6\).</p></div>
+</article>
+
+<article data-unit="4" data-title="A puzzle in the ordered phase">
+<p>At \(h = 0.5\) exact diagonalization of 12 spins gives a cat state, \(S \approx 1\) bit. DMRG at \(L = 100\) gives \(S \approx 0\). Which is right?</p>
+<p>Both are ground states, almost. In the ordered phase the symmetric cat and the two symmetry-broken states (all spins along \(+x\) or \(-x\), dressed by fluctuations) are degenerate up to a splitting of order \(h^L\). Exact diagonalization picks the true, symmetric one. DMRG picks a symmetry-broken one, because truncation favours low entanglement and the energy difference is far below its precision.</p>
+<p>This is spontaneous symmetry breaking showing up in a numerical method.</p>
+<div class="check"><p class="q">How could you make DMRG return the cat state?</p><button type="button">Show answer</button><p class="a" hidden>Enforce the \(\mathbb{Z}_2\) parity \(\prod_i Z_i\) in the tensors (symmetric DMRG), so only parity-even states are allowed.</p></div>
+</article>
+
+<article data-unit="5" data-title="Growing the chain from the middle">
+<p>Infinite DMRG (iDMRG) targets the infinite chain directly. Start with two sites. At every step insert two new sites in the middle, between the left and right blocks:</p>
+<div class="tn" data-d="idmrg"></div>
+<p>Solve the two-site problem exactly as in finite DMRG, split \(\theta = A\,S\,B\), absorb \(A\) into the left block and \(B\) into the right one. There are no sweeps: the environments are the memory. Once the centre stops changing, \(A\), \(S\), \(B\) describe the infinite chain.</p>
+<p class="cite">McCulloch, <a href="https://arxiv.org/abs/0804.2509">arXiv:0804.2509</a>.</p>
+<div class="check"><p class="q">The total energy \(E_N\) includes edge effects. How do you get the energy per site?</p><button type="button">Show answer</button><p class="a" hidden>From the growth: \(e = (E_{N+2} - E_N)/2\). The edges contribute the same at every step once converged, so they cancel.</p></div>
+</article>
+
+<article data-unit="5" data-title="McCulloch's guess">
+<p>Each step needs a starting vector for Lanczos. The new centre looks like the old one shifted by one site. Written with the last step's tensors:</p>
+<div class="math">\(\theta_\text{guess} = S\,B\,S_\text{prev}^{-1}\,A\,S\)</div>
+<p>where \(S_\text{prev}\) are the Schmidt values from the step before. It is one line of code and it saves most of the Lanczos iterations.</p>
+<div class="data"><b>Your data</b>300 steps at \(h = 1\), \(\chi = 16\): 12.4 s from random starts, 3.3 s with the guess, same energy. Notebook 4.</div>
+<div class="check"><p class="q">Why does the guess divide by \(S_\text{prev}\)?</p><button type="button">Show answer</button><p class="a" hidden>To remove the old centre's weights before moving the centre over by one site, so the shifted state is correctly normalized in the new basis.</p></div>
+</article>
+
+<article data-unit="5" data-title="Correlation length from the transfer matrix">
+<p>A translation-invariant MPS has a <em>transfer matrix</em>: one unit cell of ket and bra contracted over the physical legs, \(T = \sum_s B^s \otimes \overline{B^s}\). Correlations at distance \(r\) behave like \(T^r\). Its largest eigenvalue is 1, so</p>
+<div class="tn" data-d="transfer"></div>
+<div class="math">\(\langle O_0 O_r\rangle_c \sim |\lambda_2|^{r}, \qquad \xi = -\frac{1}{\ln|\lambda_2|}\ \text{per unit cell}\)</div>
+<p>With two sites per cell, \(\xi = -2/\ln|\lambda_2|\) in sites. (A length, so the natural log here.)</p>
+<div class="data"><b>Your data</b>\(h = 1.5\), \(\chi = 16\): \(\xi = 2.39\). Exact: \(1/\ln 1.5 = 2.47\). At \(h = 0.5\) you get \(\xi \approx 5\times10^9\): the cat state has a second eigenvalue equal to 1.</div>
+<div class="check"><p class="q">Why must \(\xi\) be finite for any MPS with finite \(\chi\)?</p><button type="button">Show answer</button><p class="a" hidden>\(T\) is a finite \(\chi^2\times\chi^2\) matrix, so unless \(|\lambda_2| = 1\) exactly, correlations decay exponentially.</p></div>
+</article>
+
+<article data-unit="5" data-title="Finite-entanglement scaling">
+<p>At a critical point the true \(\xi\) is infinite, but any finite-\(\chi\) MPS has a finite one. So \(\chi\) plays the role of a system size. Two scaling laws follow (Tagliacozzo et al. <a href="https://arxiv.org/abs/0801.2970">arXiv:0801.2970</a>; Pollmann et al. <a href="https://arxiv.org/abs/0812.2903">arXiv:0812.2903</a>):</p>
+<div class="math">\(S = \frac{c}{6}\log_2\xi + \text{const}, \qquad \xi \propto \chi^{\kappa},\;\; \kappa \approx 2.03 \text{ for } c = \tfrac12\)</div>
+<div class="data"><b>Your data</b>\(h = 1\), \(\chi = 6\) to 16: \(\xi\) grows from 55 to 434 sites, and the fit of \(S\) against \(\log_2\xi\) gives \(c \approx 0.51\). Each run needed 1000 steps (2000 sites) to converge.</div>
+<div class="check"><p class="q">Why does iDMRG at criticality need so many steps?</p><button type="button">Show answer</button><p class="a" hidden>The chain has to grow well beyond \(\xi(\chi)\), which is hundreds of sites here, before the centre forgets the edges.</p></div>
+</article>
+
+<article data-unit="5" data-title="Where to go next">
+<p>You now know the whole algorithm. What production codes add, roughly in the order you would meet it:</p>
+<ul>
+<li><strong>Symmetries.</strong> Block-sparse tensors labelled by conserved charges. Faster, and they fix puzzles like the cat state.</li>
+<li><strong>Single-site DMRG</strong> with a mixer or subspace expansion (Hubig et al. <a href="https://arxiv.org/abs/1501.05504">arXiv:1501.05504</a>).</li>
+<li><strong>2D systems</strong> on cylinders, snaking the MPS through the lattice (Stoudenmire and White <a href="https://arxiv.org/abs/1105.1374">arXiv:1105.1374</a>).</li>
+<li><strong>Time evolution</strong> with TEBD or TDVP (Haegeman et al. <a href="https://arxiv.org/abs/1408.5056">arXiv:1408.5056</a>).</li>
+<li><strong>Excited states</strong> by orthogonality penalties, and the tangent-space excitation ansatz.</li>
+</ul>
+<p>Every notebook in <code>dmrg-from-scratch</code> ends with exercises that start on these.</p>
+<div class="check"><p class="q">Which single change to your code would speed it up about 3× at \(\chi = 64\)?</p><button type="button">Show answer</button><p class="a" hidden>Replacing the <code>einsum</code> calls in <code>apply_heff</code> with <code>tensordot</code>, which uses BLAS. You kept einsum for readability.</p></div>
+</article>
+
+</div>
+</div>
+
+<script>
+window.MathJax = { tex: { inlineMath: [["\\(", "\\)"]] }, svg: { fontCache: "global" }, startup: { typeset: false } };
+</script>
+<script src="https://cdn.jsdelivr.net/npm/mathjax@3.2.2/es5/tex-svg.js" async></script>
+<script>
+(function () {
+  const DIAGRAMS = {
+    zip_step: { w: 340, h: 124, alt: "one zipper step: E joined to the next rung gives a new E",
+      nodes: [{ id: "E", x: 50, y: 62, t: "E", s: "env", h: 82, tone: "soft" }, { id: "A", x: 140, y: 30, t: "A" }, { id: "B", x: 140, y: 94, t: "B*", tone: "soft" },
+        { id: "E2", x: 265, y: 62, t: "E′", s: "env", h: 82, tone: "soft" }],
+      edges: [["A", "B", "s"]], lines: [[63, 30, 125, 30], [63, 94, 125, 94], [278, 30, 318, 30], [278, 94, 318, 94]],
+      legs: [["A", 42, 0, "a"], ["B", 42, 0, "b"]],
+      texts: [{ x: 94, y: 24, t: "x", small: 1 }, { x: 94, y: 88, t: "y", small: 1 }, { x: 222, y: 68, t: "=" }, { x: 324, y: 34, t: "a", a: "start", small: 1 }, { x: 324, y: 98, t: "b", a: "start", small: 1 }] },
+    exp_full: { w: 340, h: 124, alt: "the expectation value of X on spin 3: the MPS on top, X on spin 3, the conjugate below",
+      nodes: [{ id: "a", x: 60, y: 30, t: "A₁", s: "triR" }, { id: "b", x: 150, y: 30, t: "A₂", s: "triR" }, { id: "c", x: 240, y: 30, t: "A₃" },
+        { id: "x", x: 240, y: 62, t: "X", s: "square", tone: "soft" },
+        { id: "a2", x: 60, y: 94, t: "A₁*", s: "triR", tone: "soft" }, { id: "b2", x: 150, y: 94, t: "A₂*", s: "triR", tone: "soft" }, { id: "c2", x: 240, y: 94, t: "A₃*", tone: "soft" }],
+      edges: [["a", "b", "a"], ["b", "c", "b"], ["a2", "b2"], ["b2", "c2"], ["a", "a2", "s₁"], ["b", "b2", "s₂"], ["c", "x"], ["x", "c2"]] },
+    exp_1: { w: 340, h: 124, alt: "after the first pair cancels",
+      nodes: [{ id: "b", x: 150, y: 30, t: "A₂", s: "triR" }, { id: "c", x: 240, y: 30, t: "A₃" }, { id: "x", x: 240, y: 62, t: "X", s: "square", tone: "soft" },
+        { id: "b2", x: 150, y: 94, t: "A₂*", s: "triR", tone: "soft" }, { id: "c2", x: 240, y: 94, t: "A₃*", tone: "soft" }],
+      edges: [["b", "c", "b"], ["b2", "c2"], ["b", "b2", "s₂"], ["c", "x"], ["x", "c2"]],
+      paths: ["M135 30 H100 V94 H135"], texts: [{ x: 92, y: 66, t: "a", a: "end", small: 1 }] },
+    exp_2: { w: 340, h: 124, alt: "after the second pair cancels, only A3, X and the conjugate of A3 remain",
+      nodes: [{ id: "c", x: 240, y: 30, t: "A₃" }, { id: "x", x: 240, y: 62, t: "X", s: "square", tone: "soft" }, { id: "c2", x: 240, y: 94, t: "A₃*", tone: "soft" }],
+      edges: [["c", "x"], ["x", "c2"]], paths: ["M225 30 H190 V94 H225"],
+      texts: [{ x: 182, y: 66, t: "b", a: "end", small: 1 }] },
+    uu: { w: 340, h: 124, alt: "U on top of its conjugate, joined on the spin leg, equals a line from a to a prime",
+      nodes: [{ id: "u", x: 85, y: 30, t: "U", s: "triR" }, { id: "v", x: 85, y: 94, t: "U*", s: "triR", tone: "soft" }],
+      edges: [["u", "v", "s₁"]], legs: [["u", 42, 0, "a"], ["v", 42, 0, "a′"]],
+      paths: ["M265 30 H230 Q215 30 215 45 V79 Q215 94 230 94 H265"],
+      texts: [{ x: 172, y: 68, t: "=" }, { x: 272, y: 34, t: "a", a: "start", small: 1 }, { x: 272, y: 98, t: "a′", a: "start", small: 1 }] },
+    norm_full: { w: 340, h: 124, alt: "the norm: the MPS on top of its conjugate",
+      nodes: [{ id: "a", x: 60, y: 30, t: "A₁", s: "triR" }, { id: "b", x: 150, y: 30, t: "A₂", s: "triR" }, { id: "c", x: 240, y: 30, t: "A₃" },
+        { id: "a2", x: 60, y: 94, t: "A₁*", s: "triR", tone: "soft" }, { id: "b2", x: 150, y: 94, t: "A₂*", s: "triR", tone: "soft" }, { id: "c2", x: 240, y: 94, t: "A₃*", tone: "soft" }],
+      edges: [["a", "b", "a"], ["b", "c", "b"], ["a2", "b2"], ["b2", "c2"], ["a", "a2", "s₁"], ["b", "b2", "s₂"], ["c", "c2", "s₃"]] },
+    norm_1: { w: 340, h: 124, alt: "after the first pair cancels, a line joins A2 and its conjugate",
+      nodes: [{ id: "b", x: 150, y: 30, t: "A₂", s: "triR" }, { id: "c", x: 240, y: 30, t: "A₃" },
+        { id: "b2", x: 150, y: 94, t: "A₂*", s: "triR", tone: "soft" }, { id: "c2", x: 240, y: 94, t: "A₃*", tone: "soft" }],
+      edges: [["b", "c", "b"], ["b2", "c2"], ["b", "b2", "s₂"], ["c", "c2", "s₃"]],
+      paths: ["M135 30 H100 V94 H135"], texts: [{ x: 92, y: 66, t: "a", a: "end", small: 1 }] },
+    norm_2: { w: 340, h: 124, alt: "after the second pair cancels, only A3 and its conjugate remain",
+      nodes: [{ id: "c", x: 240, y: 30, t: "A₃" }, { id: "c2", x: 240, y: 94, t: "A₃*", tone: "soft" }],
+      edges: [["c", "c2", "s₃"]], paths: ["M225 30 H190 V94 H225"],
+      texts: [{ x: 182, y: 66, t: "b", a: "end", small: 1 }] },
+    rightcanon: { w: 340, h: 124, alt: "a right-canonical tensor joined to its conjugate from the right equals a line",
+      nodes: [{ id: "u", x: 100, y: 30, t: "B", s: "triL" }, { id: "v", x: 100, y: 94, t: "B*", s: "triL", tone: "soft" }],
+      edges: [["u", "v", "s"]], legs: [["u", -42, 0, "a"], ["v", -42, 0, "a′"]],
+      paths: ["M115 30 H145 V94 H115", "M235 30 H270 Q285 30 285 45 V79 Q285 94 270 94 H235"],
+      texts: [{ x: 192, y: 68, t: "=" }, { x: 153, y: 66, t: "b", a: "start", small: 1 }, { x: 228, y: 34, t: "a", a: "end", small: 1 }, { x: 228, y: 98, t: "a′", a: "end", small: 1 }] },
+    intro_shapes: { w: 340, h: 112, alt: "a vector, a matrix and a 3-index tensor",
+      nodes: [{ id: "v", x: 45, y: 40, t: "v" }, { id: "M", x: 160, y: 40, t: "M" }, { id: "T", x: 280, y: 40, t: "T" }],
+      legs: [["v", 38, 0, "i"], ["M", -38, 0, "i"], ["M", 38, 0, "j"], ["T", -38, 0, "a"], ["T", 0, 36, "s"], ["T", 38, 0, "b"]],
+      texts: [{ x: 45, y: 106, t: "vector", small: 1 }, { x: 160, y: 106, t: "matrix", small: 1 }, { x: 280, y: 106, t: "3-index tensor", small: 1 }] },
+    intro_contract: { w: 340, h: 72, alt: "contracting two matrices gives their product",
+      nodes: [{ id: "A", x: 70, y: 35, t: "A" }, { id: "B", x: 135, y: 35, t: "B" }, { id: "AB", x: 282, y: 35, t: "AB", s: "box", w: 44 }],
+      edges: [["A", "B", "j"]], legs: [["A", -38, 0, "i"], ["B", 38, 0, "k"], ["AB", -46, 0, "i"], ["AB", 46, 0, "k"]],
+      texts: [{ x: 207, y: 41, t: "=" }] },
+    intro_psi: { w: 340, h: 92, alt: "a three-spin state as one tensor with three legs",
+      nodes: [{ id: "p", x: 80, y: 35, t: "ψ", s: "box", w: 90 }],
+      legs: [["p", -30, 38, "s₁"], ["p", 0, 38, "s₂"], ["p", 30, 38, "s₃"]],
+      texts: [{ x: 150, y: 40, t: "8 numbers, one per (s₁, s₂, s₃)", a: "start", small: 1 }] },
+    schmidt: { w: 340, h: 72, alt: "the state as a matrix equals U, S, V dagger",
+      nodes: [{ id: "p", x: 55, y: 35, t: "ψ" }, { id: "U", x: 160, y: 35, t: "U" }, { id: "S", x: 215, y: 35, t: "S", s: "diamond", tone: "soft" }, { id: "V", x: 270, y: 35, t: "V†" }],
+      edges: [["U", "S", "a"], ["S", "V", "a"]],
+      legs: [["p", -32, 0, "left", 1], ["p", 32, 0, "right", 1], ["U", -32, 0, "left", 1], ["V", 32, 0, "right", 1]],
+      texts: [{ x: 113, y: 41, t: "=" }] },
+    step1: { w: 340, h: 92, alt: "grouping spins 2 and 3 into one thick leg turns psi into a matrix",
+      nodes: [{ id: "p", x: 70, y: 35, t: "ψ", s: "box", w: 80 }, { id: "M", x: 225, y: 35, t: "M" }],
+      legs: [["p", -26, 38, "s₁"], ["p", 0, 38, "s₂"], ["p", 26, 38, "s₃"], ["M", -40, 0, "s₁"], ["M", 40, 0, "s₂s₃", 1]],
+      texts: [{ x: 145, y: 41, t: "=" }] },
+    step2a: { w: 340, h: 72, alt: "M equals U times S times V dagger",
+      nodes: [{ id: "M", x: 45, y: 35, t: "M" }, { id: "U", x: 165, y: 35, t: "U" }, { id: "S", x: 220, y: 35, t: "S", s: "diamond", tone: "soft" }, { id: "V", x: 275, y: 35, t: "V†" }],
+      edges: [["U", "S", "a"], ["S", "V", "a"]],
+      legs: [["M", -30, 0, "s₁"], ["M", 30, 0, "", 1], ["U", -30, 0, "s₁"], ["V", 30, 0, "s₂s₃", 1]],
+      texts: [{ x: 103, y: 41, t: "=" }] },
+    step2b: { w: 340, h: 92, alt: "U with leg s1 joined by bond a to the remainder with legs s2 and s3",
+      nodes: [{ id: "U", x: 70, y: 35, t: "U" }, { id: "R", x: 160, y: 35, t: "SV†", s: "box", w: 50 }],
+      edges: [["U", "R", "a"]], legs: [["U", 0, 38, "s₁"], ["R", -12, 38, "s₂"], ["R", 12, 38, "s₃"]],
+      texts: [{ x: 205, y: 40, t: "spin 1 is done", a: "start", small: 1 }] },
+    step3: { w: 340, h: 92, alt: "the remainder splits into U prime and S prime V prime dagger joined by bond b",
+      nodes: [{ id: "R", x: 60, y: 35, t: "SV†", s: "box", w: 50 }, { id: "U", x: 185, y: 35, t: "U′" }, { id: "R2", x: 268, y: 35, t: "S′V′†", s: "box", w: 58 }],
+      edges: [["U", "R2", "b"]],
+      legs: [["R", -40, 0, "a"], ["R", -12, 38, "s₂"], ["R", 12, 38, "s₃"], ["U", -38, 0, "a"], ["U", 0, 38, "s₂"], ["R2", 0, 38, "s₃"]],
+      texts: [{ x: 120, y: 41, t: "=" }] },
+    step4: { w: 340, h: 92, alt: "psi equals a chain of three tensors",
+      nodes: [{ id: "p", x: 60, y: 35, t: "ψ", s: "box", w: 80 }, { id: "A1", x: 185, y: 35, t: "A₁" }, { id: "A2", x: 245, y: 35, t: "A₂" }, { id: "A3", x: 305, y: 35, t: "A₃" }],
+      edges: [["A1", "A2", "a"], ["A2", "A3", "b"]],
+      legs: [["p", -26, 38, "s₁"], ["p", 0, 38, "s₂"], ["p", 26, 38, "s₃"], ["A1", 0, 38, "s₁"], ["A2", 0, 38, "s₂"], ["A3", 0, 38, "s₃"]],
+      texts: [{ x: 135, y: 41, t: "=" }] },
+    chainL: { w: 340, h: 92, alt: "a matrix product state of L sites",
+      nodes: [{ id: "a", x: 30, y: 35, t: "A₁" }, { id: "b", x: 90, y: 35, t: "A₂" }, { id: "c", x: 150, y: 35, t: "A₃" }, { id: "d", x: 210, y: 35, t: "A₄" }, { id: "e", x: 305, y: 35, t: "A_L" }],
+      edges: [["a", "b", "χ"], ["b", "c", "χ"], ["c", "d", "χ"]], lines: [[210, 35, 237, 35], [278, 35, 305, 35]],
+      legs: [["a", 0, 38, "s₁"], ["b", 0, 38, "s₂"], ["c", 0, 38, "s₃"], ["d", 0, 38, "s₄"], ["e", 0, 38, "s_L"]],
+      texts: [{ x: 258, y: 40, t: "···" }] },
+    gauge: { w: 340, h: 92, alt: "inserting X and X inverse on a bond",
+      nodes: [{ id: "a", x: 50, y: 35, t: "Aᵢ" }, { id: "x", x: 125, y: 35, t: "X", s: "square", tone: "soft" }, { id: "y", x: 200, y: 35, t: "X⁻¹", s: "square", tone: "soft" }, { id: "b", x: 275, y: 35, t: "Aᵢ₊₁" }],
+      edges: [["a", "x"], ["x", "y"], ["y", "b"]], legs: [["a", -32, 0, ""], ["b", 32, 0, ""], ["a", 0, 36, ""], ["b", 0, 36, ""]],
+      texts: [{ x: 162, y: 86, t: "X X⁻¹ = 1, so the state is unchanged", small: 1 }] },
+    leftcanon: { w: 340, h: 124, alt: "a left-canonical tensor contracted with its conjugate gives the identity",
+      nodes: [{ id: "a", x: 70, y: 30, t: "A", s: "triR" }, { id: "b", x: 70, y: 94, t: "A*", s: "triR", tone: "soft" }],
+      edges: [["a", "b", "s"]], paths: ["M55 30 H28 V94 H55"], legs: [["a", 42, 0, "b"], ["b", 42, 0, "b′"]],
+      texts: [{ x: 165, y: 68, t: "=" }] },
+    mixed: { w: 340, h: 82, alt: "left-canonical tensors, a centre tensor, right-canonical tensors",
+      nodes: [{ id: "a", x: 40, y: 32, s: "triR", t: "A" }, { id: "b", x: 100, y: 32, s: "triR", t: "A" }, { id: "c", x: 170, y: 32, t: "C", tone: "accent" }, { id: "d", x: 240, y: 32, s: "triL", t: "B" }, { id: "e", x: 300, y: 32, s: "triL", t: "B" }],
+      edges: [["a", "b"], ["b", "c"], ["c", "d"], ["d", "e"]],
+      legs: [["a", 0, 36, ""], ["b", 0, 36, ""], ["c", 0, 36, ""], ["d", 0, 36, ""], ["e", 0, 36, ""]] },
+    overlap: { w: 340, h: 146, alt: "the overlap as two chains joined by their physical legs",
+      boxes: [{ x: 14, y: 20, w: 112, h: 118, t: "E" }],
+      nodes: [0, 1, 2, 3, 4].flatMap((i) => [{ id: "k" + i, x: 50 + 62 * i, y: 46, t: "A" }, { id: "b" + i, x: 50 + 62 * i, y: 112, t: "B*", tone: "soft" }]),
+      edges: [0, 1, 2, 3].flatMap((i) => [["k" + i, "k" + (i + 1)], ["b" + i, "b" + (i + 1)]]).concat([0, 1, 2, 3, 4].map((i) => ["k" + i, "b" + i])) },
+    mpo: { w: 340, h: 112, alt: "an MPO: a chain of four-leg tensors",
+      nodes: [0, 1, 2, 3, 4].map((i) => ({ id: "w" + i, x: 45 + 62 * i, y: 56, t: "W", s: "square" })),
+      edges: [["w0", "w1", "w"], ["w1", "w2"], ["w2", "w3"], ["w3", "w4"]],
+      legs: [0, 1, 2, 3, 4].flatMap((i) => [["w" + i, 0, -34, i === 0 ? "out" : ""], ["w" + i, 0, 34, i === 0 ? "in" : ""]]) },
+    sandwich: { w: 340, h: 170, alt: "the energy as a sandwich of ket, MPO and bra, with the left and right environments boxed",
+      boxes: [{ x: 10, y: 20, w: 104, h: 144, t: "L" }, { x: 226, y: 20, w: 104, h: 144, t: "R" }],
+      nodes: [0, 1, 2, 3, 4, 5].flatMap((i) => [
+        { id: "k" + i, x: 35 + 54 * i, y: 44, tone: i === 2 || i === 3 ? "accent" : "" },
+        { id: "w" + i, x: 35 + 54 * i, y: 92, s: "square" },
+        { id: "b" + i, x: 35 + 54 * i, y: 140, tone: i === 2 || i === 3 ? "accent" : "soft" }]),
+      edges: [0, 1, 2, 3, 4].flatMap((i) => [["k" + i, "k" + (i + 1)], ["w" + i, "w" + (i + 1)], ["b" + i, "b" + (i + 1)]])
+        .concat([0, 1, 2, 3, 4, 5].flatMap((i) => [["k" + i, "w" + i], ["w" + i, "b" + i]])) },
+    heff: { w: 340, h: 158, alt: "H_eff acting on theta: left environment, two MPO tensors and right environment contracted with theta",
+      nodes: [{ id: "L", x: 40, y: 75, t: "L", s: "env", h: 124, tone: "soft" }, { id: "R", x: 300, y: 75, t: "R", s: "env", h: 124, tone: "soft" },
+        { id: "th", x: 170, y: 25, t: "θ", s: "box", w: 110, tone: "accent" }, { id: "w1", x: 135, y: 75, t: "W", s: "square" }, { id: "w2", x: 205, y: 75, t: "W", s: "square" }],
+      lines: [[53, 25, 115, 25], [225, 25, 287, 25], [135, 40, 135, 62], [205, 40, 205, 62], [53, 75, 122, 75], [148, 75, 192, 75], [218, 75, 287, 75],
+        [135, 88, 135, 126], [205, 88, 205, 126], [53, 126, 92, 126], [248, 126, 287, 126]],
+      texts: [{ x: 170, y: 152, t: "the open legs at the bottom form the new vector H_eff θ", small: 1 }] },
+    split: { w: 340, h: 92, alt: "theta splits into A, S, B",
+      nodes: [{ id: "th", x: 72, y: 35, t: "θ", s: "box", w: 70, tone: "accent" }, { id: "A", x: 185, y: 35, t: "A", s: "triR" }, { id: "S", x: 240, y: 35, t: "S", s: "diamond", tone: "soft" }, { id: "B", x: 295, y: 35, t: "B", s: "triL" }],
+      edges: [["A", "S", "k"], ["S", "B", "k"]],
+      legs: [["th", -52, 0, "a"], ["th", -15, 38, "s₁"], ["th", 15, 38, "s₂"], ["th", 52, 0, "b"], ["A", -30, 0, ""], ["A", 0, 38, "s₁"], ["B", 0, 38, "s₂"], ["B", 30, 0, "b"]],
+      texts: [{ x: 144, y: 41, t: "=" }] },
+    idmrg: { w: 340, h: 160, alt: "iDMRG inserts two new sites between the blocks at every step",
+      nodes: [{ id: "L1", x: 70, y: 35, t: "L", s: "env", h: 44, tone: "soft" }, { id: "c1", x: 125, y: 35, tone: "accent" }, { id: "c2", x: 180, y: 35, tone: "accent" }, { id: "R1", x: 235, y: 35, t: "R", s: "env", h: 44, tone: "soft" },
+        { id: "L2", x: 40, y: 120, t: "L", s: "env", h: 44, tone: "soft" }, { id: "a", x: 92, y: 120, s: "triR" }, { id: "d1", x: 145, y: 120, tone: "accent" }, { id: "d2", x: 198, y: 120, tone: "accent" }, { id: "b", x: 251, y: 120, s: "triL" }, { id: "R2", x: 303, y: 120, t: "R", s: "env", h: 44, tone: "soft" }],
+      edges: [["L1", "c1"], ["c1", "c2"], ["c2", "R1"], ["L2", "a"], ["a", "d1"], ["d1", "d2"], ["d2", "b"], ["b", "R2"]],
+      legs: [["c1", 0, 30, ""], ["c2", 0, 30, ""], ["a", 0, 30, ""], ["d1", 0, 30, ""], ["d2", 0, 30, ""], ["b", 0, 30, ""]],
+      texts: [{ x: 290, y: 40, t: "step n", a: "start", small: 1 }, { x: 170, y: 86, t: "↓  absorb A and B into the blocks, insert two new sites", small: 1 }] },
+    transfer: { w: 340, h: 124, alt: "the transfer matrix: B over its conjugate, joined by the physical leg",
+      nodes: [{ id: "a", x: 100, y: 30, t: "B", s: "triL" }, { id: "b", x: 100, y: 94, t: "B*", s: "triL", tone: "soft" }],
+      edges: [["a", "b", "s"]], legs: [["a", -42, 0, ""], ["a", 42, 0, ""], ["b", -42, 0, ""], ["b", 42, 0, ""]],
+      texts: [{ x: 200, y: 68, t: "= T, a χ² × χ² matrix", a: "start", small: 1 }] },
+  };
+  DIAGRAMS.leftcanon.paths.push("M265 30 H230 Q215 30 215 45 V79 Q215 94 230 94 H265");
+  DIAGRAMS.leftcanon.texts.push({ x: 272, y: 34, t: "b", a: "start", small: 1 }, { x: 272, y: 98, t: "b′", a: "start", small: 1 });
+  // ---- Tensor-network diagrams -------------------------------------------------
+  // Each diagram is a small spec: nodes (tensors), edges (contracted indices),
+  // legs (open indices), plus optional raw lines, paths, dashed boxes and text.
+  const R = 15; // node half-size in px
+  const SHAPES = {
+    circle: (n) => `<circle cx="${n.x}" cy="${n.y}" r="${R}"/>`,
+    square: (n) => `<rect x="${n.x - R + 2}" y="${n.y - R + 2}" width="${2 * R - 4}" height="${2 * R - 4}" rx="3"/>`,
+    diamond: (n) => `<polygon points="${n.x},${n.y - R} ${n.x + R},${n.y} ${n.x},${n.y + R} ${n.x - R},${n.y}"/>`,
+    triR: (n) => `<polygon points="${n.x - R},${n.y - R} ${n.x + R},${n.y} ${n.x - R},${n.y + R}"/>`,
+    triL: (n) => `<polygon points="${n.x + R},${n.y - R} ${n.x - R},${n.y} ${n.x + R},${n.y + R}"/>`,
+    box: (n) => `<rect x="${n.x - n.w / 2}" y="${n.y - R}" width="${n.w}" height="${2 * R}" rx="6"/>`,
+    env: (n) => `<rect x="${n.x - 13}" y="${n.y - n.h / 2}" width="26" height="${n.h}" rx="6"/>`,
+  };
+  const esc = (t) => String(t).replace(/&/g, "&amp;").replace(/</g, "&lt;");
+  function drawDiagram(d) {
+    const by = Object.fromEntries((d.nodes || []).map((n) => [n.id, n]));
+    let out = "";
+    for (const b of d.boxes || [])
+      out += `<rect class="tn-box" x="${b.x}" y="${b.y}" width="${b.w}" height="${b.h}" rx="8"/>` +
+        (b.t ? `<text class="tn-boxlabel" x="${b.x + 4}" y="${b.y - 5}">${esc(b.t)}</text>` : "");
+    for (const p of d.paths || []) out += `<path class="tn-line" d="${p}"/>`;
+    for (const l of d.lines || []) out += `<line class="tn-line${l[4] ? " thick" : ""}" x1="${l[0]}" y1="${l[1]}" x2="${l[2]}" y2="${l[3]}"/>`;
+    for (const e of d.edges || []) {
+      const a = by[e[0]], b = by[e[1]];
+      out += `<line class="tn-line${e[3] ? " thick" : ""}" x1="${a.x}" y1="${a.y}" x2="${b.x}" y2="${b.y}"/>`;
+      if (e[2]) out += `<text class="tn-idx" x="${(a.x + b.x) / 2 + (a.y === b.y ? 0 : 7)}" y="${(a.y + b.y) / 2 + (a.y === b.y ? -6 : 4)}" text-anchor="${a.y === b.y ? "middle" : "start"}">${esc(e[2])}</text>`;
+    }
+    for (const g of d.legs || []) {
+      const n = by[g[0]], x2 = n.x + g[1], y2 = n.y + g[2];
+      out += `<line class="tn-line${g[4] ? " thick" : ""}" x1="${n.x}" y1="${n.y}" x2="${x2}" y2="${y2}"/>`;
+      if (g[3]) {
+        const anchor = g[1] > 0 && g[2] === 0 ? "start" : g[1] < 0 && g[2] === 0 ? "end" : "middle";
+        const lx = x2 + (anchor === "start" ? 4 : anchor === "end" ? -4 : 0);
+        const ly = y2 + (g[2] > 0 ? 13 : g[2] < 0 ? -5 : 4);
+        out += `<text class="tn-idx" x="${lx}" y="${ly}" text-anchor="${anchor}">${esc(g[3])}</text>`;
+      }
+    }
+    for (const n of d.nodes || []) {
+      out += `<g class="tn-node ${n.tone || ""}">${SHAPES[n.s || "circle"](n)}</g>`;
+      if (n.t) {
+        const dx = n.s === "triR" ? -5 : n.s === "triL" ? 5 : 0;
+        out += `<text class="tn-label${n.tone === "accent" ? " on-accent" : ""}${String(n.t).length > 2 && n.s !== "box" ? " tight" : ""}" x="${n.x + dx}" y="${n.y + 4.5}" text-anchor="middle">${esc(n.t)}</text>`;
+      }
+    }
+    for (const t of d.texts || [])
+      out += `<text class="tn-text${t.small ? " small" : ""}" x="${t.x}" y="${t.y}" text-anchor="${t.a || "middle"}">${esc(t.t)}</text>`;
+    return `<svg viewBox="0 0 ${d.w} ${d.h}" width="${d.w}" role="img" aria-label="${esc(d.alt || "tensor network diagram")}">${out}</svg>`;
+  }
+  function renderDiagrams(root) {
+    root.querySelectorAll(".tn[data-d]").forEach((el) => {
+      const d = DIAGRAMS[el.dataset.d];
+      if (d) el.innerHTML = drawDiagram(d);
+    });
+  }
+
+  const units = {
+    1: ["Why compression works", "Entanglement tells us which states can be stored cheaply."],
+    2: ["Matrix product states", "Writing a state as a chain of small tensors."],
+    3: ["Hamiltonians as MPOs", "Writing the TFIM as a chain, and the exact answers to test against."],
+    4: ["Finite DMRG", "Optimizing two sites at a time, sweeping back and forth."],
+    5: ["Infinite DMRG", "Growing the chain from the middle, and critical scaling."],
+  };
+  const $ = (id) => document.getElementById(id);
+  const lessons = Array.from(document.querySelectorAll("#lessons article"));
+  const total = lessons.length;
+  $("nLessons").textContent = String(total);
+  $("pos").textContent = `1 / ${total}`;
+  // Progress is stored by lesson title, so adding lessons later keeps the ticks in place.
+  const titles = lessons.map((el) => el.dataset.title);
+  const KEY = "dmrg-pocket-v2";
+  let state = { done: [], last: titles[0] };
+  try {
+    const s = JSON.parse(localStorage.getItem(KEY));
+    if (s && Array.isArray(s.done)) state = s;
+    else {
+      // Version 1 stored positions in the original 29-lesson order.
+      const OLD = ["The exponential wall", "The Schmidt decomposition", "Entanglement entropy", "The area law", "Truncation",
+        "From a state to a matrix product state", "Counting parameters", "Gauge freedom", "Left- and right-canonical tensors",
+        "The mixed canonical form", "Overlaps without the full vector", "Operators as chains", "The TFIM as a little machine",
+        "MPO bond dimensions", "Exact answers to test against", "The variational idea", "Environments",
+        "The effective Hamiltonian", "Lanczos: matvecs only", "Split, truncate, move", "Sweeping", "How good is the answer?",
+        "Measuring the central charge", "A puzzle in the ordered phase", "Growing the chain from the middle",
+        "McCulloch's guess", "Correlation length from the transfer matrix", "Finite-entanglement scaling", "Where to go next"];
+      const v1 = JSON.parse(localStorage.getItem("dmrg-pocket-v1"));
+      if (v1 && Array.isArray(v1.done)) state = { done: v1.done.map((i) => OLD[i]).filter((t) => titles.includes(t)), last: titles[0] };
+    }
+  } catch (e) {}
+  const save = () => { try { localStorage.setItem(KEY, JSON.stringify(state)); } catch (e) {} };
+  const isDone = (i) => state.done.includes(titles[i]);
+
+  const home = $("home"), reader = $("reader"), stage = $("stage");
+  let current = 0;
+
+  function renderHome() {
+    const box = $("units");
+    box.innerHTML = "";
+    Object.keys(units).forEach((u) => {
+      const sec = document.createElement("div");
+      sec.className = "unit";
+      sec.innerHTML = `<h2>Part ${u} · ${units[u][0]}</h2><p class="blurb">${units[u][1]}</p>`;
+      lessons.forEach((el, i) => {
+        if (el.dataset.unit !== u) return;
+        const b = document.createElement("button");
+        b.type = "button";
+        b.className = "row" + (isDone(i) ? " is-done" : "");
+        b.innerHTML = `<span class="n">${i + 1}</span><span class="t">${el.dataset.title}</span><span class="mark" aria-label="${isDone(i) ? "done" : "not done"}"></span>`;
+        b.addEventListener("click", () => open(i));
+        sec.appendChild(b);
+      });
+      box.appendChild(sec);
+    });
+    const n = titles.filter((t) => state.done.includes(t)).length;
+    $("bar").style.width = (100 * n / total) + "%";
+    $("count").textContent = `${n} of ${total} done`;
+    let next = 0;
+    while (next < total && isDone(next)) next++;
+    if (next >= total) next = Math.max(0, titles.indexOf(state.last));
+    const c = $("continue");
+    c.innerHTML = (n === 0 ? "Start with lesson 1" : n === total ? "Review: lesson " + (next + 1) : "Continue: lesson " + (next + 1)) + `<span>${lessons[next].dataset.title}</span>`;
+    c.onclick = () => open(next);
+  }
+
+  function typeset(el) {
+    if (window.MathJax && MathJax.typesetPromise) MathJax.typesetPromise([el]).catch(() => {});
+    else setTimeout(() => typeset(el), 300);
+  }
+
+  function open(i) {
+    current = i;
+    state.last = titles[i]; save();
+    const src = lessons[i];
+    stage.innerHTML = `<div class="lesson"><div class="unitname">Part ${src.dataset.unit} · ${units[src.dataset.unit][0]}</div><h2>${src.dataset.title}</h2>${src.innerHTML}</div>`;
+    stage.querySelectorAll(".check button").forEach((b) => {
+      b.addEventListener("click", () => {
+        const a = b.nextElementSibling;
+        a.hidden = !a.hidden;
+        b.textContent = a.hidden ? "Show answer" : "Hide answer";
+      });
+    });
+    $("pos").textContent = `${i + 1} / ${total}`;
+    $("prev").disabled = i === 0;
+    $("prev").style.visibility = i === 0 ? "hidden" : "visible";
+    $("next").textContent = i === total - 1 ? "Finish ✓" : "Got it, next →";
+    home.hidden = true; reader.hidden = false;
+    window.scrollTo(0, 0);
+    renderDiagrams(stage);
+    typeset(stage);
+  }
+
+  function goHome() { reader.hidden = true; home.hidden = false; renderHome(); window.scrollTo(0, 0); }
+
+  $("back").addEventListener("click", goHome);
+  $("prev").addEventListener("click", () => { if (current > 0) open(current - 1); });
+  $("next").addEventListener("click", () => {
+    if (!isDone(current)) { state.done.push(titles[current]); save(); }
+    if (current < total - 1) open(current + 1); else goHome();
+  });
+  $("reset").addEventListener("click", () => { $("resetConfirm").hidden = false; });
+  $("resetNo").addEventListener("click", () => { $("resetConfirm").hidden = true; });
+  $("resetYes").addEventListener("click", () => { state = { done: [], last: titles[0] }; save(); $("resetConfirm").hidden = true; renderHome(); });
+
+  renderHome();
+})();
+</script>
