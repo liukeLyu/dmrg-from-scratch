@@ -2,7 +2,7 @@
 
 **The question:** after notebooks 00–06 a reader knows how DMRG works and can run TeNPy and block2. What else do they need before they can use DMRG to learn something new about a material or a molecule, and trust the answer?
 
-2026-11-04. Every reference below was checked on arXiv or the journal page; entries marked *(to confirm)* were not.
+2026-11-04. Every reference below was checked on arXiv or the journal page.
 
 ## What the repo covers now, and what is missing
 
@@ -70,7 +70,7 @@ Each stage is a notebook, numbered as in `examples/`, and keeps the repo's rule:
 
 *Why:* in industry, DMRG has two jobs on the quantum side. It is the classical baseline a quantum algorithm must beat, and it supplies the starting state for phase estimation.
 
-*Learn:* the evidence for and against exponential quantum advantage in ground-state chemistry, built largely on DMRG baselines ([Lee et al.](https://arxiv.org/abs/2208.02199); [Nat. Commun. 14, 1952 (2023)](https://doi.org/10.1038/s41467-023-37587-6) *(article number to confirm)*); preparing initial states for phase estimation, including from MPS ([Fomichev et al.](https://arxiv.org/abs/2310.18410); [PRX Quantum 5, 040339 (2024)](https://doi.org/10.1103/PRXQuantum.5.040339)); compiling an MPS into one- and two-qubit gates ([Ran](https://arxiv.org/abs/1908.07958)).
+*Learn:* the evidence for and against exponential quantum advantage in ground-state chemistry, built largely on DMRG baselines ([Lee et al.](https://arxiv.org/abs/2208.02199); [Nat. Commun. 14, 1952 (2023)](https://doi.org/10.1038/s41467-023-37587-6)); preparing initial states for phase estimation, including from MPS ([Fomichev et al.](https://arxiv.org/abs/2310.18410); [PRX Quantum 5, 040339 (2024)](https://doi.org/10.1103/PRXQuantum.5.040339)); compiling an MPS into one- and two-qubit gates ([Ran](https://arxiv.org/abs/1908.07958)).
 
 *Done in notebooks 11–14* (merged from `dmrg-vs-qpe`): both prices, the starting-state overlap and the crossover width. *New, notebook 15:* compile the DMRG starting state into a circuit in PennyLane and check its overlap exactly. Related: `qchem-from-scratch` (the Hartree–Fock overlap collapses on stretched hydrogen chains).
 
