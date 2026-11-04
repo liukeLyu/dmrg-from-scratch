@@ -6,12 +6,16 @@ The density-matrix renormalization group (DMRG), written from scratch in short, 
 
 New to DMRG? Start with [`00_start_here`](examples/00_start_here.ipynb): why a laptop can find the ground state of 60 interacting spins (the exponential wall, the area law).
 
+Already know how DMRG works, for example from the [pocket course](docs/pocket-course.html), and want to run it with a well-optimized package? Go straight to steps 5 (TeNPy) and 6 (block2, for molecules).
+
 | Step | What you learn | Notebook |
 |---|---|---|
 | 1 | Matrix product states: one SVD per cut, canonical forms, Schmidt values, truncation | [`01_mps_basics`](examples/01_mps_basics.ipynb) |
 | 2 | The Hamiltonian as a matrix product operator (a 3-state machine); exact free-fermion energies | [`02_tfim_mpo`](examples/02_tfim_mpo.ipynb) |
 | 3 | Finite two-site DMRG with a Lanczos eigensolver | [`03_finite_dmrg`](examples/03_finite_dmrg.ipynb) |
 | 4 | Infinite DMRG, correlation length and finite-entanglement scaling | [`04_idmrg`](examples/04_idmrg.ipynb) |
+| 5 | DMRG in practice with TeNPy: the same objects by their package names, what to check before trusting a result, symmetries | [`05_dmrg_in_practice`](examples/05_dmrg_in_practice.ipynb) |
+| 6 | Quantum chemistry with block2: molecules as DMRG chains, breaking the N₂ bond where CCSD(T) fails, orbital order and orbital entanglement (phone companion: [quantum chemistry pocket course](docs/qchem-pocket-course.html)) | [`06_quantum_chemistry_block2`](examples/06_quantum_chemistry_block2.ipynb) |
 
 ## What you will see
 
@@ -32,7 +36,7 @@ Each notebook cell runs in seconds. Results that need longer runs appear twice: 
 
 `benchmarks/benchmark_tenpy.py` solves the same problems with [TeNPy](https://github.com/tenpy/tenpy) as a cross-check (same accuracy).
 
-Entropies are in bits (log base 2) throughout. Index conventions: MPS tensors `A[left, phys, right]`, MPO tensors `W[w_left, w_right, out, in]`, environments `L[ket, mpo, bra]`.
+The package imports as `import dmrg_from_scratch as dmrg`. Entropies are in bits (log base 2) throughout. Index conventions: MPS tensors `A[left, phys, right]`, MPO tensors `W[w_left, w_right, out, in]`, environments `L[ket, mpo, bra]`.
 
 ## References
 
