@@ -6,9 +6,10 @@ estimation; it needs PennyLane, so it is not imported here.
 """
 
 from .exact import central_charge_fit, ground_state, tfim_infinite_energy_density, tfim_open_energy
+from .fermions import free_chain_energy, hubbard_mpo
 from .finite import dmrg, dmrg_ladder
 from .infinite import correlation_length, idmrg
-from .models import PauliSum, cylinder_bonds, j1j2_cylinder, tfim_cylinder
+from .models import PauliSum, cylinder_bonds, hubbard_cylinder, j1j2_cylinder, neel_pinning, tfim_cylinder
 from .mpo import build_mpo, expectation, mpo_to_dense, tfim_bulk_tensor, tfim_mpo
 from .mps import (
     compress,
@@ -17,10 +18,12 @@ from .mps import (
     left_canonicalize,
     normalize,
     overlap,
+    product_expectation,
     product_mps,
     random_mps,
     right_canonicalize,
     schmidt_values,
+    site_expectations,
     to_dense,
     truncated_svd,
 )
@@ -35,19 +38,25 @@ __all__ = [
     "dmrg_ladder",
     "entropy",
     "expectation",
+    "free_chain_energy",
     "from_dense",
     "ground_state",
+    "hubbard_cylinder",
+    "hubbard_mpo",
     "idmrg",
     "j1j2_cylinder",
     "left_canonicalize",
     "mpo_to_dense",
+    "neel_pinning",
     "normalize",
     "overlap",
     "PauliSum",
+    "product_expectation",
     "product_mps",
     "random_mps",
     "right_canonicalize",
     "schmidt_values",
+    "site_expectations",
     "tfim_bulk_tensor",
     "tfim_cylinder",
     "tfim_infinite_energy_density",

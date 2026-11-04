@@ -143,3 +143,31 @@ def compress(mps, chi_max):
         mps[i] = U.reshape(chi_l, d, -1)
         mps[i + 1] = np.einsum("a,ab,bsc->asc", S, Vh, mps[i + 1])
     return mps
+
+
+def site_expectations(mps, op):
+    """``<psi|op_i|psi>`` on every site i, for a one-site operator ``op`` (d x d).
+
+    Move the orthogonality centre from left to right with QR: with all other tensors isometries,
+    the expectation value on the centre site involves that one tensor only.
+    """
+    mps = normalize(mps)  # right-canonical, so site 0 is the centre
+    out = []
+    for i, C in enumerate(mps):
+        out.append(np.einsum("asb,ts,atb->", C, op, C.conj()))
+        if i + 1 < len(mps):
+            chi_l, d, chi_r = C.shape
+            Q, R = np.linalg.qr(C.reshape(chi_l * d, chi_r))
+            mps[i + 1] = np.einsum("ab,bsc->asc", R, mps[i + 1])
+    return np.real(np.array(out))
+
+
+def product_expectation(mps, ops):
+    """<psi| prod_i ops[i] |psi> / <psi|psi>, with ``ops`` a dict {site: d x d matrix} (identity elsewhere)."""
+    E = np.ones((1, 1))
+    nrm = np.ones((1, 1))
+    for i, A in enumerate(mps):
+        O = ops.get(i, np.eye(A.shape[1]))
+        E = np.einsum("xy,xsa,ts,ytb->ab", E, A, O, A.conj())
+        nrm = np.einsum("xy,xsa,ysb->ab", nrm, A, A.conj())
+    return float(np.real(E[0, 0] / nrm[0, 0]))
