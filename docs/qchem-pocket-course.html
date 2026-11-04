@@ -1,0 +1,755 @@
+<!doctype html>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Quantum Chemistry Pocket Course</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Familjen+Grotesk:wght@500;700&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;1,8..60,400&family=JetBrains+Mono:wght@400;600&display=swap">
+<style>
+/* Layout: one narrow reading column; a home list of lessons, and one lesson at a time with a sticky bar. */
+:root {
+  --bg: #f3f6f8;
+  --paper: #ffffff;
+  --ink: #15232d;
+  --muted: #5a6b76;
+  --line: #d6e0e6;
+  --accent: #0d6f7d;
+  --accent-soft: #e0f0f2;
+  --done: #2f7a3e;
+  --data: #7a4a0d;
+  --data-soft: #fbf1e2;
+  --display: "Familjen Grotesk", "Helvetica Neue", Arial, sans-serif;
+  --body: "Source Serif 4", Georgia, "Times New Roman", serif;
+  --mono: "JetBrains Mono", ui-monospace, Menlo, Consolas, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0f171c; --paper: #16222a; --ink: #e3ecf0; --muted: #93a6b1; --line: #2a3a44;
+    --accent: #5cc3cf; --accent-soft: #173a40; --done: #79c788; --data: #e8b56a; --data-soft: #2e2416;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0f171c; --paper: #16222a; --ink: #e3ecf0; --muted: #93a6b1; --line: #2a3a44;
+  --accent: #5cc3cf; --accent-soft: #173a40; --done: #79c788; --data: #e8b56a; --data-soft: #2e2416;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body {
+  background: var(--bg); color: var(--ink); font-family: var(--body); font-size: 18px; line-height: 1.6;
+  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px));
+  padding-block: 0 48px;
+}
+body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-area-inset-top, 0px); z-index: 10; background: var(--bg); }
+.wrap { max-width: 640px; margin: 0 auto; }
+h1, h2, h3 { font-family: var(--display); text-wrap: balance; line-height: 1.2; margin: 0; }
+a { color: var(--accent); }
+code { font-family: var(--mono); font-size: 0.82em; background: var(--accent-soft); padding: 0.05em 0.3em; border-radius: 4px; overflow-wrap: anywhere; }
+button { font: inherit; cursor: pointer; }
+button:focus-visible, a:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
+
+/* Home */
+.hero { padding-block: 28px 8px; display: grid; gap: 10px; }
+.eyebrow { font-family: var(--mono); font-size: 12px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); }
+.hero h1 { font-size: 34px; }
+.hero p { margin: 0; color: var(--muted); }
+.progress { display: grid; gap: 6px; margin-top: 8px; }
+.bar { height: 8px; background: var(--line); border-radius: 99px; overflow: hidden; }
+.bar > span { display: block; height: 100%; background: var(--accent); width: 0; transition: width 0.3s; }
+.progress small { font-family: var(--mono); font-size: 13px; color: var(--muted); font-variant-numeric: tabular-nums; }
+.continue { margin-top: 10px; background: var(--accent); color: var(--paper); border: 0; border-radius: 12px; padding: 14px 18px; text-align: left; font-family: var(--display); font-weight: 700; font-size: 17px; }
+.continue span { display: block; font-family: var(--body); font-weight: 400; font-size: 15px; opacity: 0.9; }
+.unit { margin-top: 28px; display: grid; gap: 4px; }
+.unit h2 { font-size: 15px; font-family: var(--mono); font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); padding-bottom: 6px; border-bottom: 1px solid var(--line); }
+.unit p.blurb { margin: 4px 0 6px; font-size: 15px; color: var(--muted); }
+.row { display: grid; grid-template-columns: 2.2em 1fr auto; align-items: center; gap: 10px; width: 100%; background: none; border: 0; border-bottom: 1px solid var(--line); padding: 12px 2px; text-align: left; color: var(--ink); }
+.row .n { font-family: var(--mono); font-size: 14px; color: var(--muted); font-variant-numeric: tabular-nums; }
+.row .t { font-family: var(--display); font-weight: 500; font-size: 17px; line-height: 1.3; min-width: 0; }
+.row .mark { width: 22px; height: 22px; border-radius: 50%; border: 2px solid var(--line); display: grid; place-items: center; font-size: 13px; color: var(--paper); }
+.row.is-done .mark { background: var(--done); border-color: var(--done); }
+.row.is-done .mark::after { content: "✓"; }
+.foot { margin-top: 32px; font-size: 15px; color: var(--muted); }
+.linkbtn { background: none; border: 0; color: var(--accent); text-decoration: underline; padding: 0; font-size: 15px; }
+
+/* Lesson view */
+.topbar { position: sticky; top: env(safe-area-inset-top, 0px); z-index: 5; background: var(--bg); display: flex; align-items: center; justify-content: space-between; gap: 12px; padding-block: 10px; border-bottom: 1px solid var(--line); }
+.topbar button { background: none; border: 0; color: var(--accent); font-family: var(--display); font-weight: 500; font-size: 16px; padding: 6px 0; }
+.topbar .pos { font-family: var(--mono); font-size: 13px; color: var(--muted); font-variant-numeric: tabular-nums; }
+.lesson { padding-block: 18px 8px; display: grid; gap: 14px; }
+.lesson .unitname { font-family: var(--mono); font-size: 12px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--accent); }
+.lesson h2 { font-size: 27px; }
+.lesson p { margin: 0; }
+.lesson ul { margin: 0; padding-left: 1.2em; display: grid; gap: 4px; }
+.math { overflow-x: auto; overflow-y: hidden; background: var(--paper); border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px; text-align: center; }
+.data { background: var(--data-soft); border-radius: 10px; padding: 12px 14px; font-size: 16px; }
+.data b { font-family: var(--mono); font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--data); display: block; margin-bottom: 2px; }
+.code { font-size: 15px; color: var(--muted); }
+pre { font-family: var(--mono); font-size: 13px; line-height: 1.5; background: var(--paper); border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px; overflow-x: auto; margin: 0; }
+.check { border: 2px solid var(--accent-soft); border-radius: 12px; padding: 12px 14px; display: grid; gap: 8px; }
+.check .q { font-weight: 600; }
+.check .q::before { content: "Quick check  "; font-family: var(--mono); font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--accent); display: block; font-weight: 400; }
+.check button { justify-self: start; background: var(--accent-soft); color: var(--accent); border: 0; border-radius: 8px; padding: 8px 14px; font-family: var(--display); font-weight: 500; font-size: 15px; }
+.review .check .q::before { content: "Recall  "; }
+.review .lead { color: var(--muted); }
+.check .a { border-top: 1px dashed var(--line); padding-top: 8px; }
+.cite { font-size: 15px; color: var(--muted); }
+.nav { display: flex; gap: 10px; margin-top: 10px; }
+.nav button { flex: 1; border-radius: 12px; padding: 14px; font-family: var(--display); font-weight: 700; font-size: 16px; border: 2px solid var(--accent); }
+.nav .prev { background: none; color: var(--accent); flex: 0 0 auto; padding-inline: 18px; }
+.nav .next { background: var(--accent); color: var(--paper); }
+.tn { overflow-x: auto; background: var(--paper); border: 1px solid var(--line); border-radius: 10px; padding: 8px 6px; text-align: center; }
+.tn svg { max-width: 100%; height: auto; display: inline-block; }
+.tn-line { stroke: var(--ink); stroke-width: 1.6; fill: none; stroke-linecap: round; }
+.tn-line.thick { stroke-width: 3.6; }
+.tn-node > * { fill: var(--paper); stroke: var(--ink); stroke-width: 1.6; }
+.tn-node.soft > * { fill: var(--accent-soft); }
+.tn-node.accent > * { fill: var(--accent); stroke: var(--accent); }
+.tn-label { font-family: var(--mono); font-size: 12px; fill: var(--ink); }
+.tn-label.tight { font-size: 9.5px; }
+.tn-label.on-accent { fill: var(--paper); font-weight: 600; }
+.tn-idx { font-family: var(--body); font-style: italic; font-size: 12px; fill: var(--muted); }
+.tn-text { font-family: var(--body); font-size: 20px; fill: var(--ink); }
+.tn-text.small { font-size: 12.5px; fill: var(--muted); }
+.tn-box { fill: none; stroke: var(--muted); stroke-width: 1.2; stroke-dasharray: 4 4; }
+.tn-boxlabel { font-family: var(--mono); font-size: 11px; fill: var(--muted); }
+.plot { background: var(--paper); border: 1px solid var(--line); border-radius: 10px; padding: 8px 6px; text-align: center; }
+.plot svg { max-width: 100%; height: auto; }
+.plot .grid { stroke: var(--line); stroke-width: 1; }
+.plot .axis { stroke: var(--muted); stroke-width: 1; }
+.plot .half { stroke: var(--muted); stroke-width: 1.2; stroke-dasharray: 4 4; }
+.plot .tick { font-family: var(--mono); font-size: 11px; fill: var(--muted); }
+.plot .lab { font-family: var(--mono); font-size: 12px; fill: var(--ink); }
+.plot .lab.c1 { fill: var(--accent); }
+.plot .lab.c2 { fill: var(--data); }
+.plot .ln1 { fill: none; stroke: var(--accent); stroke-width: 1.6; }
+.plot .ln2 { fill: none; stroke: var(--data); stroke-width: 1.6; }
+.plot .pt { fill: var(--accent); stroke: var(--paper); stroke-width: 1; }
+.plot .pt2 { fill: var(--data); stroke: var(--paper); stroke-width: 1; }
+.plot .b1 { fill: var(--accent); }
+.plot .b2 { fill: var(--data); }
+.plot .cap { font-size: 13px; color: var(--muted); margin: 4px 6px 0; text-align: left; }
+.tablewrap { overflow-x: auto; }
+.lesson pre { font-size: 12px; }
+.lesson table { border-collapse: collapse; font-size: 14px; width: 100%; font-variant-numeric: tabular-nums; }
+.lesson th, .lesson td { border-bottom: 1px solid var(--line); padding: 5px 4px; text-align: left; }
+.lesson th { font-family: var(--mono); font-size: 12px; font-weight: 500; color: var(--muted); }
+.data table { margin-top: 6px; }
+.tnote { font-size: 13px; color: var(--muted); margin-top: 4px !important; }
+.tn-arrow { font-family: var(--body); font-size: 17px; fill: var(--accent); }
+.tn-sub { font-size: 12px; font-style: italic; }
+@media (prefers-reduced-motion: reduce) { .bar > span { transition: none; } }
+</style>
+
+<div class="wrap">
+
+<section id="home">
+  <div class="hero">
+    <div class="eyebrow">Companion to dmrg-from-scratch, notebook 6</div>
+    <h1>Quantum Chemistry Pocket Course</h1>
+    <p><span id="nLessons">N</span> short lessons, about two minutes each, for people who know DMRG, from "what is the energy of a molecule?" to choosing an active space from orbital entropies. Each one ends with a quick check you can do in your head, and every few lessons a review card mixes questions from earlier ones. The numbers in the amber boxes come from notebook 6 of <code>dmrg-from-scratch</code> (block2 and PySCF).</p>
+    <div class="progress">
+      <div class="bar"><span id="bar"></span></div>
+      <small id="count">0 lessons done</small>
+    </div>
+    <button class="continue" id="continue" type="button">Start with lesson 1<span>What is the energy of a molecule?</span></button>
+  </div>
+  <div id="units"></div>
+  <p class="foot">Your progress is saved in this browser only. <button class="linkbtn" id="reset" type="button">Clear progress</button><span id="resetConfirm" hidden> Clear all ticks? <button class="linkbtn" id="resetYes" type="button">Yes, clear</button> · <button class="linkbtn" id="resetNo" type="button">Keep</button></span></p>
+</section>
+
+<section id="reader" hidden>
+  <div class="topbar">
+    <button type="button" id="back">← All lessons</button>
+    <span class="pos" id="pos"></span>
+  </div>
+  <div id="stage"></div>
+  <div class="nav">
+    <button class="prev" type="button" id="prev">←</button>
+    <button class="next" type="button" id="next">Got it, next →</button>
+  </div>
+</section>
+
+<!-- Lessons. data-unit groups them; each needs data-title. -->
+<div id="lessons" hidden>
+
+<article data-unit="1" data-title="What is the energy of a molecule?">
+<p>The question of this course: given where the atoms of a molecule sit, what is the lowest energy of its electrons? Almost everything chemists want follows from that one number computed at many geometries: the bond length is where it is lowest, the bond energy is how much it rises when you pull the atoms apart, and a reaction energy is the difference between the totals before and after.</p>
+<p><b>Recipe.</b> Nuclei are thousands of times heavier than electrons, so hold them fixed at positions \(\mathbf R_A\) with charges \(Z_A\) and solve for the electrons alone (the Born–Oppenheimer approximation). In hartree atomic units (\(\hbar = m_e = e = 4\pi\varepsilon_0 = 1\)) the electrons' Hamiltonian is</p>
+<div class="math">\(H = -\sum_i \tfrac12\nabla_i^2 \;-\; \sum_{i,A} \frac{Z_A}{|\mathbf r_i - \mathbf R_A|} \;+\; \sum_{i&lt;j} \frac{1}{|\mathbf r_i - \mathbf r_j|} \;+\; E_\text{nuc}\)</div>
+<p>Kinetic energy, attraction to the nuclei, repulsion between electrons, and the constant repulsion between the fixed nuclei. The electron–electron term is what makes it hard: without it, each electron could be solved for on its own.</p>
+<p>Energies come out in hartree (Ha); \(1\) Ha \(= 27.2\) eV. Chemists quote energy differences in kcal/mol, and \(1\) kcal/mol \(\approx 1.6\times10^{-3}\) Ha.</p>
+<div class="data"><b>Your data</b>Water in its smallest basis: exact total energy \(E = -75.0126471190\) Ha, of which the nuclear repulsion is \(E_\text{nuc} = 9.188258\) Ha. Notebook 6.</div>
+<p class="cite">M. Born and R. Oppenheimer, <a href="https://doi.org/10.1002/andp.19273892002">Ann. Phys. 389, 457 (1927)</a>; A. Szabo and N. S. Ostlund, <i>Modern Quantum Chemistry</i>, Dover (1996), chapter 2.</p>
+<div class="check"><p class="q">You want a reaction energy to 1 kcal/mol, and each molecule's total energy is about \(-75\) Ha. To what relative precision must each total be right?</p><button type="button">Show answer</button><p class="a" hidden>\(1.6\times10^{-3}/75 \approx 2\times10^{-5}\): a few parts in \(10^5\). Chemistry lives in tiny differences of large numbers, which is why approximate methods have to be so accurate.</p></div>
+</article>
+
+<article data-unit="1" data-title="Orbitals from a basis set">
+<p>The electrons live in continuous space, but a computer needs a finite list. So pick \(K\) one-electron functions, <em>orbitals</em> \(\phi_1, \dots, \phi_K\), and allow each electron only combinations of them. \(K\) plays the role of the chain length.</p>
+<p><b>Worked example: water in STO-3G.</b> The smallest standard choice, the STO-3G basis set, takes one function per atomic orbital of each free atom, centred on that atom:</p>
+<ul>
+<li>oxygen: 1s, 2s, 2p\(_x\), 2p\(_y\), 2p\(_z\), five functions;</li>
+<li>each hydrogen: 1s, one function each.</li>
+</ul>
+<p>That is \(K = 7\) orbitals for 10 electrons. Larger basis sets (such as cc-pVDZ) add more functions per atom and get closer to the continuum limit, at the price of a larger \(K\).</p>
+<p>The answer is then exact <em>within the basis</em>: the best any method can do is the lowest eigenvalue of \(H\) restricted to these orbitals. Everything that follows lives inside that restriction.</p>
+<p class="code">In the code: <code>gto.M(atom="O 0 0 0; H 0 0.757 0.587; H 0 -0.757 0.587", basis="sto-3g")</code> (positions in ångström), PySCF.</p>
+<div class="data"><b>Your data</b>Water, STO-3G: 7 orbitals, 10 electrons. Notebook 6.</div>
+<p class="cite">W. J. Hehre, R. F. Stewart and J. A. Pople, <a href="https://doi.org/10.1063/1.1672392">J. Chem. Phys. 51, 2657 (1969)</a> (STO-3G); Q. Sun et al., <a href="https://arxiv.org/abs/2002.12531">arXiv:2002.12531</a>; <a href="https://doi.org/10.1063/5.0006074">J. Chem. Phys. 153, 024109 (2020)</a> (PySCF).</p>
+<div class="check"><p class="q">How many STO-3G orbitals does N₂ have? (Nitrogen, like oxygen, has 1s, 2s and three 2p.)</p><button type="button">Show answer</button><p class="a" hidden>Five per atom, so \(K = 10\). Notebook 6 uses exactly this: 10 orbitals, 14 electrons.</p></div>
+</article>
+
+<article data-unit="1" data-title="Slater determinants">
+<p>Electrons are fermions: swapping two of them must flip the sign of the wavefunction. A simple product "electron 1 in \(\chi_1\), electron 2 in \(\chi_2\)" does not do that, so it is not allowed.</p>
+<p>Here \(\chi\) is a <em>spin-orbital</em>, an orbital together with a spin, \(\phi_p\uparrow\) or \(\phi_p\downarrow\); \(K\) orbitals give \(2K\) spin-orbitals.</p>
+<p><b>Two electrons.</b> Antisymmetrize the product by hand:</p>
+<div class="math">\(\Phi(x_1, x_2) = \frac{1}{\sqrt2}\big[\chi_1(x_1)\chi_2(x_2) - \chi_2(x_1)\chi_1(x_2)\big] = \frac{1}{\sqrt2}\det\begin{pmatrix} \chi_1(x_1) &amp; \chi_2(x_1) \\ \chi_1(x_2) &amp; \chi_2(x_2) \end{pmatrix}\)</div>
+<p>Swapping \(x_1 \leftrightarrow x_2\) swaps the rows, and a determinant changes sign when two rows swap. If \(\chi_1 = \chi_2\), two columns are equal and \(\Phi = 0\): no two electrons in the same spin-orbital, which is the Pauli principle.</p>
+<p><b>\(N\) electrons.</b> The same construction with an \(N\times N\) matrix \(\chi_j(x_i)\) is a <em>Slater determinant</em>. It is the fermion version of a product state: each electron in its own spin-orbital, and nothing more. A Slater determinant is fixed entirely by <em>which</em> spin-orbitals are filled.</p>
+<p class="cite">Szabo and Ostlund, chapter 2.</p>
+<div class="check"><p class="q">Water has 10 electrons in 7 orbitals. In a single Slater determinant, how many orbitals hold two electrons, if all are paired?</p><button type="button">Show answer</button><p class="a" hidden>Five, each with one \(\uparrow\) and one \(\downarrow\) electron; the other two orbitals are empty.</p></div>
+</article>
+
+<article data-unit="1" data-title="Electrons as occupation numbers">
+<p>Since a determinant is fixed by which spin-orbitals are filled, write it as a list of occupations, one entry per orbital: 0 (empty), \(\uparrow\), \(\downarrow\) or 2 (both). This is the language of DMRG: a basis state of a chain.</p>
+<p><b>Worked example.</b> The Hartree–Fock determinant of water (next part) fills the five lowest orbitals:</p>
+<div class="tn" data-d="levels"></div>
+<div class="math">\(|\Phi_0\rangle = |2\,2\,2\,2\,2\,0\,0\rangle\)</div>
+<p>To make this precise, let \(a^\dagger_{p\sigma}\) create an electron in orbital \(p\) with spin \(\sigma\). Then a determinant is a product of creation operators on the empty state, \(|\Phi\rangle = a^\dagger_{1\uparrow}a^\dagger_{1\downarrow}a^\dagger_{2\uparrow}\cdots|0\rangle\). Antisymmetry is now an operator rule:</p>
+<div class="math">\(a^\dagger_{p\sigma}a^\dagger_{q\tau} = -\,a^\dagger_{q\tau}a^\dagger_{p\sigma}\)</div>
+<p>so the order in which you create electrons fixes the sign of the state, and \(a^\dagger_{p\sigma}a^\dagger_{p\sigma} = 0\) is Pauli again. This is <em>second quantization</em>: the wavefunction's antisymmetry has moved into the operators.</p>
+<p class="cite">Szabo and Ostlund, chapter 2; T. Helgaker, P. Jørgensen and J. Olsen, <i>Molecular Electronic-Structure Theory</i>, <a href="https://doi.org/10.1002/9781119019572">Wiley (2000)</a>.</p>
+<div class="check"><p class="q">What is \(a^\dagger_{2\uparrow}a^\dagger_{1\uparrow}|0\rangle\) in terms of \(a^\dagger_{1\uparrow}a^\dagger_{2\uparrow}|0\rangle\)?</p><button type="button">Show answer</button><p class="a" hidden>Its negative. Same occupations, opposite sign: the sign depends on an agreed order, and a chain code fixes that order along the chain.</p></div>
+</article>
+
+<article data-unit="1" data-title="Review: the problem" data-review>
+<p class="lead">Answer each from memory before you tap.</p>
+<div class="check"><p class="q">(Lesson 1) Which term of the molecular Hamiltonian stops you from solving each electron separately?</p><button type="button">Show answer</button><p class="a" hidden>The electron–electron repulsion \(\sum_{i&lt;j} 1/|\mathbf r_i - \mathbf r_j|\).</p></div>
+<div class="check"><p class="q">(Lesson 2) If you double the basis set, what happens to the exact energy "within the basis"?</p><button type="button">Show answer</button><p class="a" hidden>It can only go down or stay (a larger space to minimize over), moving towards the continuum answer.</p></div>
+<div class="check"><p class="q">(Lessons 3–4) Write the state "orbital 1 doubly occupied, orbital 2 holding one \(\uparrow\) electron" as creation operators on \(|0\rangle\).</p><button type="button">Show answer</button><p class="a" hidden>\(a^\dagger_{1\uparrow}a^\dagger_{1\downarrow}a^\dagger_{2\uparrow}|0\rangle\), up to a sign fixed by the order chosen; in occupation form \(|2\,\uparrow\rangle\).</p></div>
+</article>
+
+<article data-unit="2" data-title="Hartree–Fock: the best single determinant">
+<p>The first approximation every calculation makes: find the Slater determinant with the lowest energy. That is <em>Hartree–Fock</em> (HF), the mean-field theory of chemistry, like a product-state ansatz for a spin chain.</p>
+<p><b>Recipe</b> (the self-consistent field):</p>
+<ul>
+<li>Guess the orbitals and fill the lowest ones.</li>
+<li>Each electron feels the nuclei plus the <em>average</em> repulsion of all the others. Build that one-electron Hamiltonian (the Fock matrix) and diagonalize it: new orbitals.</li>
+<li>Refill the lowest, rebuild the average, repeat until the orbitals stop changing.</li>
+</ul>
+<p>The result is a set of \(K\) orbitals ordered by energy: the lowest \(N/2\) doubly occupied, the rest empty. These <em>HF orbitals</em> are the \(\phi_p\) the rest of the course uses, and the HF determinant \(|\Phi_0\rangle\) is the reference state.</p>
+<p>Because \(E_\text{HF} = \langle\Phi_0|H|\Phi_0\rangle\) is an expectation value, it is an upper bound on the exact energy in the basis.</p>
+<p class="code">In the code: <code>mf = scf.RHF(mol).run()</code>; <code>mf.e_tot</code> is \(E_\text{HF}\), <code>mf.mo_coeff</code> the orbitals.</p>
+<div class="data"><b>Your data</b>Water, STO-3G: \(E_\text{HF} = -74.9630631297\) Ha, against the exact \(-75.0126471190\) Ha. Notebook 6.</div>
+<p class="cite">Szabo and Ostlund, chapter 3.</p>
+<div class="check"><p class="q">In the DMRG language, what is the bond dimension of a single Slater determinant written in its own orbitals?</p><button type="button">Show answer</button><p class="a" hidden>1. Each orbital is surely empty, singly or doubly occupied, so the state is a product of site states: no entanglement between orbitals.</p></div>
+</article>
+
+<article data-unit="2" data-title="The correlation energy">
+<p>Everything Hartree–Fock misses is called the <em>correlation energy</em>:</p>
+<div class="math">\(E_\text{corr} = E_\text{exact} - E_\text{HF}\)</div>
+<p>It is what electrons gain by avoiding each other instantaneously, rather than only on average. In a mean field, each electron sees a smeared-out cloud of the others; in reality, where one electron is, the others are less likely to be.</p>
+<div class="data"><b>Your data</b>Water, STO-3G: \(E_\text{corr} = -0.0496\) Ha, under 0.1% of the total energy. Notebook 6.</div>
+<p>Small, but it decides chemistry: \(0.05\) Ha is about 30 kcal/mol, the size of a reaction energy. A method that drops it gets reaction energies wrong by as much as the reaction energy itself.</p>
+<p>All of quantum chemistry beyond HF is about recovering \(E_\text{corr}\). The exact answer within the basis has a name, FCI (Part 3), and DMRG is one way to get it.</p>
+<div class="check"><p class="q">Can \(E_\text{corr}\) be positive?</p><button type="button">Show answer</button><p class="a" hidden>No. \(E_\text{HF}\) is the expectation value in one state of the basis, so it is at least the lowest eigenvalue: \(E_\text{corr} \le 0\).</p></div>
+</article>
+
+<article data-unit="2" data-title="The Hamiltonian in second quantization">
+<p>To put a molecule into DMRG, write \(H\) with the operators \(a^\dagger, a\) of the HF orbitals, as you would a lattice model:</p>
+<div class="math">\(H = E_\text{core} + \sum_{pq,\sigma} h_{pq}\, a^\dagger_{p\sigma} a_{q\sigma} + \frac12 \sum_{pqrs,\sigma\tau} g_{pqrs}\, a^\dagger_{p\sigma} a^\dagger_{r\tau} a_{s\tau} a_{q\sigma}\)</div>
+<p>Read it term by term:</p>
+<ul>
+<li>\(h_{pq}\) moves one electron from orbital \(q\) to \(p\), keeping its spin: a hopping, with the kinetic energy and the attraction to the nuclei inside.</li>
+<li>\(g_{pqrs}\) is the Coulomb repulsion between two electrons, one moving \(q \to p\) and the other \(s \to r\). It is the integral \(\int \phi_p\phi_q(1)\,\tfrac{1}{r_{12}}\,\phi_r\phi_s(2)\), written \((pq|rs)\) by chemists.</li>
+<li>\(E_\text{core}\) is a constant: the repulsion of the nuclei (plus, later, frozen core electrons).</li>
+</ul>
+<p><b>Compare the TFIM.</b> There, each site talks to its neighbour. Here every pair of orbitals hops and every quadruple interacts: a fermion chain with all-to-all couplings.</p>
+<p class="cite">Helgaker, Jørgensen and Olsen, <a href="https://doi.org/10.1002/9781119019572">Wiley (2000)</a>.</p>
+<div class="check"><p class="q">Which \(g\) is the plain repulsion between an electron sitting in orbital \(p\) and one sitting in orbital \(r\) (neither moves)?</p><button type="button">Show answer</button><p class="a" hidden>\(g_{pprr} = (pp|rr)\): set \(q = p\) and \(s = r\), and the term becomes \(g_{pprr}\,n_{p\sigma} n_{r\tau}\) for different spin-orbitals, a density–density repulsion.</p></div>
+</article>
+
+<article data-unit="2" data-title="The two arrays DMRG sees">
+<p>Once the orbitals are chosen, the molecule is gone: all that is left are two arrays of numbers and a constant. PySCF computes them; DMRG never sees anything else.</p>
+<div class="data"><b>Your data</b>Water, STO-3G: <code>h1e</code> has shape (7, 7), <code>g2e</code> has shape (7, 7, 7, 7), and \(E_\text{core} = 9.188258\) Ha, the nuclear repulsion. Notebook 6.</div>
+<p><b>Check the meaning.</b> Put \(|\Phi_0\rangle\), the HF determinant, into \(H\). With \(i, j\) running over the doubly occupied orbitals,</p>
+<div class="math">\(E_\text{HF} = E_\text{core} + 2\sum_i h_{ii} + \sum_{ij}\big[2g_{iijj} - g_{ijji}\big]\)</div>
+<p>The \(2h_{ii}\): two electrons per orbital, each with its one-electron energy. The \(2g_{iijj}\): the plain (direct) Coulomb repulsion between the four electron pairs of orbitals \(i\) and \(j\). The \(-g_{ijji}\): <em>exchange</em>, a correction only between same-spin electrons, coming from the antisymmetry.</p>
+<div class="data"><b>Your data</b>That formula on water's arrays: \(-74.9630631297\) Ha. PySCF's RHF: \(-74.9630631297\) Ha. Notebook 6.</div>
+<p class="code">In the code: <code>itg.get_rhf_integrals(mf, g2e_symm=1)</code> returns <code>n_orb, n_elec, spin, ecore, h1e, g2e, orbsym</code>.</p>
+<p class="cite">Szabo and Ostlund, chapter 3.</p>
+<div class="check"><p class="q">A molecule with one doubly occupied orbital (H₂ in its smallest basis). What does the formula give?</p><button type="button">Show answer</button><p class="a" hidden>\(E_\text{core} + 2h_{11} + g_{1111}\): the bracket is \(2g_{1111} - g_{1111}\). One repulsion between the \(\uparrow\) and \(\downarrow\) electrons, no exchange (they have opposite spins).</p></div>
+</article>
+
+<article data-unit="2" data-title="Review: parts 1–2" data-review>
+<p class="lead">Answer each from memory before you tap.</p>
+<div class="check"><p class="q">(Lesson 6) Why is the HF energy always above the exact energy in the same basis?</p><button type="button">Show answer</button><p class="a" hidden>It is the expectation value of \(H\) in one allowed state, \(|\Phi_0\rangle\); the lowest eigenvalue is below every expectation value.</p></div>
+<div class="check"><p class="q">(Lesson 7) Water's correlation energy is \(-0.0496\) Ha. About how many kcal/mol is that?</p><button type="button">Show answer</button><p class="a" hidden>About 30 kcal/mol (\(0.0496/1.6\times10^{-3} \approx 31\)), as large as a typical reaction energy.</p></div>
+<div class="check"><p class="q">(Lesson 8) Which array holds the attraction of electrons to the nuclei, <code>h1e</code> or <code>g2e</code>?</p><button type="button">Show answer</button><p class="a" hidden><code>h1e</code>: it involves one electron at a time. <code>g2e</code> holds only the electron–electron repulsion.</p></div>
+<div class="check"><p class="q">(Lesson 3) Why does a Slater determinant vanish when two electrons share a spin-orbital?</p><button type="button">Show answer</button><p class="a" hidden>Two columns of the determinant become equal.</p></div>
+</article>
+
+<article data-unit="3" data-title="FCI and the exponential wall">
+<p>The exact answer within a basis is called <em>full configuration interaction</em> (FCI). It is exact diagonalization: write \(H\) in the basis of every Slater determinant and find the lowest eigenvalue.</p>
+<p><b>Count the determinants.</b> \(H\) conserves the number of \(\uparrow\) and \(\downarrow\) electrons, so choose which \(N_\uparrow\) of the \(K\) orbitals hold an \(\uparrow\) electron, and independently which \(N_\downarrow\) hold a \(\downarrow\):</p>
+<div class="math">\(\dim = \binom{K}{N_\uparrow}\binom{K}{N_\downarrow}\)</div>
+<p>Water: \(K = 7\), \(N_\uparrow = N_\downarrow = 5\), so \(\binom75^2 = 21^2 = 441\).</p>
+<div class="data"><b>Your data</b>FCI dimension: H₂O, STO-3G (\(K = 7\)): \(4.4\times10^2\). N₂, STO-3G (\(K = 10\)): \(1.4\times10^4\). N₂, cc-pVDZ (\(K = 28\)): \(1.4\times10^{12}\). Benzene, cc-pVDZ (\(K = 114\)): \(1.9\times10^{45}\). Notebook 6.</div>
+<p>This is the same wall as for spin chains: each orbital you add multiplies the space. A realistic basis set is out of reach of FCI even for a two-atom molecule.</p>
+<p class="code">In the code: <code>fci.FCI(mf).kernel()</code>, PySCF.</p>
+<div class="check"><p class="q">Check the N₂ STO-3G number: 14 electrons, 10 orbitals.</p><button type="button">Show answer</button><p class="a" hidden>\(N_\uparrow = N_\downarrow = 7\), \(\binom{10}{7} = 120\), and \(120^2 = 14\,400 \approx 1.4\times10^4\).</p></div>
+</article>
+
+<article data-unit="3" data-title="Active spaces">
+<p>The usual way round the wall: solve exactly only where it matters. Split the orbitals in three:</p>
+<ul>
+<li><b>core</b>: the lowest orbitals (such as the 1s of each heavy atom), kept doubly occupied;</li>
+<li><b>active</b>: a window of orbitals around the highest occupied ones, treated exactly;</li>
+<li><b>virtual</b>: the highest orbitals, kept empty.</li>
+</ul>
+<p>The active window has its own \(h\) and \(g\), and the frozen core electrons move into the constant \(E_\text{core}\). FCI on the window is called CASCI, and the window is written (electrons, orbitals).</p>
+<p><b>Worked example.</b> A (6, 6) active space: 6 electrons in 6 orbitals, \(N_\uparrow = N_\downarrow = 3\), so \(\binom63^2 = 400\) determinants, however large the full basis.</p>
+<p>The price: everything outside the window is treated as in HF, so the answer depends on choosing the window well. DMRG's job in chemistry is to replace FCI when the active space is too big for it, and, as Part 5 shows, to help choose the window.</p>
+<p class="code">In the code: <code>itg.get_rhf_integrals(mf, ncore=..., ncas=...)</code> returns the Hamiltonian of the window; <code>pyscf.mcscf.CASCI</code> solves it with FCI.</p>
+<div class="check"><p class="q">N₂ in cc-pVDZ has 28 orbitals. You freeze the two 1s cores. How many active electrons are left?</p><button type="button">Show answer</button><p class="a" hidden>\(14 - 4 = 10\). Each frozen core orbital takes 2 electrons.</p></div>
+</article>
+
+<article data-unit="3" data-title="Coupled cluster">
+<p>Between HF and FCI sits the method chemists use by default: <em>coupled cluster</em>. It starts from the HF determinant and adds excitations.</p>
+<div class="tn" data-d="excite"></div>
+<p><b>Machinery.</b> A double excitation \(a^\dagger_a a^\dagger_b a_j a_i\) moves two electrons from occupied orbitals \(i, j\) to empty orbitals \(a, b\). Collect all of them, with unknown amplitudes \(t\), into one operator \(T_2\), and singles into \(T_1\). The ansatz is</p>
+<div class="math">\(|\psi_\text{CC}\rangle = e^{T_1 + T_2}\,|\Phi_0\rangle\)</div>
+<p>That is CCSD. Expanding the exponential also produces products such as \(\tfrac12T_2^2\), four-electron excitations whose amplitudes come for free from the doubles. CCSD(T) adds triple excitations as a perturbative correction. The cost grows only polynomially with \(K\), not exponentially.</p>
+<p>The amplitudes are found by projecting the Schrödinger equation, not by minimizing \(\langle H\rangle\), so the energy is <em>not variational</em>: nothing keeps it above the exact one.</p>
+<div class="data"><b>Your data</b>N₂, STO-3G, near equilibrium (\(R = 1.1\) Å): CCSD \(-\) FCI \(= +0.0039\) Ha, CCSD(T) \(-\) FCI \(= +0.0022\) Ha. Notebook 6.</div>
+<p class="code">In the code: <code>ccsd = cc.CCSD(mf).run()</code>, then <code>ccsd.e_tot + ccsd.ccsd_t()</code>.</p>
+<p class="cite">G. D. Purvis and R. J. Bartlett, <a href="https://doi.org/10.1063/1.443164">J. Chem. Phys. 76, 1910 (1982)</a> (CCSD); K. Raghavachari et al., <a href="https://doi.org/10.1016/S0009-2614(89)87395-6">Chem. Phys. Lett. 157, 479 (1989)</a> (CCSD(T)).</p>
+<div class="check"><p class="q">The CCSD(T) error at 1.1 Å is 0.0022 Ha. Is that within 1 kcal/mol?</p><button type="button">Show answer</button><p class="a" hidden>Not quite: \(0.0022/1.6\times10^{-3} \approx 1.4\) kcal/mol. Close, in this small basis.</p></div>
+</article>
+
+<article data-unit="3" data-title="Breaking H₂ by hand">
+<p>Why should coupled cluster ever fail? Pull the two atoms of H₂ apart and watch the HF determinant stop being a good start.</p>
+<p><b>Set-up.</b> Smallest basis: one 1s function on each atom, \(a\) and \(b\). Far apart they barely overlap, and the HF orbitals are the bonding and antibonding combinations</p>
+<div class="math">\(\sigma_g = \tfrac{1}{\sqrt2}(a + b), \qquad \sigma_u = \tfrac{1}{\sqrt2}(a - b)\)</div>
+<p><b>HF puts both electrons in \(\sigma_g\).</b> Expand \(a^\dagger_{g\uparrow}a^\dagger_{g\downarrow}\) in atomic operators:</p>
+<div class="math">\(|\sigma_g^2\rangle = \tfrac12\big(\underbrace{a^\dagger_{a\uparrow}a^\dagger_{a\downarrow} + a^\dagger_{b\uparrow}a^\dagger_{b\downarrow}}_{\text{both on one atom}} + \underbrace{a^\dagger_{a\uparrow}a^\dagger_{b\downarrow} + a^\dagger_{b\uparrow}a^\dagger_{a\downarrow}}_{\text{one on each}}\big)|0\rangle\)</div>
+<p>Half the weight is H\(^+\) + H\(^-\), costly at large distance, so HF's energy is far too high.</p>
+<p><b>The exact state</b> of two neutral atoms is the "one on each" part alone. The doubly excited determinant \(|\sigma_u^2\rangle\) has the same four terms with the last two signs flipped, so</p>
+<div class="math">\(\tfrac{1}{\sqrt2}\big(|\sigma_g^2\rangle - |\sigma_u^2\rangle\big) = \tfrac{1}{\sqrt2}\big(a^\dagger_{a\uparrow}a^\dagger_{b\downarrow} + a^\dagger_{b\uparrow}a^\dagger_{a\downarrow}\big)|0\rangle\)</div>
+<p>Two determinants with equal weight: the HF determinant carries only \(1/2\) of the exact state. No expansion around it can be a small correction.</p>
+<p class="cite">Szabo and Ostlund (minimal-basis H₂, chapters 2–4).</p>
+<div class="check"><p class="q">In this exact dissociated state, how likely is orbital \(\sigma_g\) to be empty, and to be doubly occupied?</p><button type="button">Show answer</button><p class="a" hidden>\(1/2\) each: the state is \(|\sigma_g^2\rangle\) or \(|\sigma_u^2\rangle\) with weight \(1/2\) each, and \(\sigma_g\) is full in the first, empty in the second. Keep this answer for "Orbital entropies".</p></div>
+</article>
+
+<article data-unit="3" data-title="Breaking N₂">
+<p>The same thing happens, three bonds at once, when you stretch the triple bond of N₂. Notebook 6 follows HF, coupled cluster and FCI along the bond length \(R\), in STO-3G, where FCI takes a fraction of a second.</p>
+<div class="plot"><svg viewBox="0 0 340 220" width="340" role="img" aria-label="Weight of the Hartree-Fock determinant in the exact N2 state against bond length: about 0.95 at 0.9 angstrom, falling below one half near 1.8 angstrom and to 0.078 at 2.8 angstrom"><line class="grid" x1="83.5" y1="12" x2="83.5" y2="178"/><text class="tick" x="83.5" y="193" text-anchor="middle">1.0</text><line class="grid" x1="147.3" y1="12" x2="147.3" y2="178"/><text class="tick" x="147.3" y="193" text-anchor="middle">1.5</text><line class="grid" x1="211.1" y1="12" x2="211.1" y2="178"/><text class="tick" x="211.1" y="193" text-anchor="middle">2.0</text><line class="grid" x1="275.0" y1="12" x2="275.0" y2="178"/><text class="tick" x="275.0" y="193" text-anchor="middle">2.5</text><line class="grid" x1="58" y1="178.0" x2="326" y2="178.0"/><text class="tick" x="52" y="182.0" text-anchor="end">0</text><line class="grid" x1="58" y1="136.5" x2="326" y2="136.5"/><text class="tick" x="52" y="140.5" text-anchor="end">0.25</text><line class="grid" x1="58" y1="95.0" x2="326" y2="95.0"/><text class="tick" x="52" y="99.0" text-anchor="end">0.5</text><line class="grid" x1="58" y1="53.5" x2="326" y2="53.5"/><text class="tick" x="52" y="57.5" text-anchor="end">0.75</text><line class="grid" x1="58" y1="12.0" x2="326" y2="12.0"/><text class="tick" x="52" y="16.0" text-anchor="end">1</text><line class="axis" x1="58" y1="178" x2="326" y2="178"/><line class="half" x1="58" y1="95.0" x2="326" y2="95.0"/><text class="lab" x="324" y="89.0" text-anchor="end">1/2</text><polyline class="ln1" points="70.8,19.6 83.5,22.3 96.3,25.8 115.4,33.2 134.6,44.5 160.1,70.3 185.6,107.3 211.1,137.0 236.7,152.4 275.0,161.6 313.2,165.1"/><circle class="pt" cx="70.8" cy="19.6" r="3.8"><title>R = 0.9 Å: 0.954</title></circle><circle class="pt" cx="83.5" cy="22.3" r="3.8"><title>R = 1.0 Å: 0.938</title></circle><circle class="pt" cx="96.3" cy="25.8" r="3.8"><title>R = 1.1 Å: 0.917</title></circle><circle class="pt" cx="115.4" cy="33.2" r="3.8"><title>R = 1.25 Å: 0.872</title></circle><circle class="pt" cx="134.6" cy="44.5" r="3.8"><title>R = 1.4 Å: 0.804</title></circle><circle class="pt" cx="160.1" cy="70.3" r="3.8"><title>R = 1.6 Å: 0.649</title></circle><circle class="pt" cx="185.6" cy="107.3" r="3.8"><title>R = 1.8 Å: 0.426</title></circle><circle class="pt" cx="211.1" cy="137.0" r="3.8"><title>R = 2.0 Å: 0.247</title></circle><circle class="pt" cx="236.7" cy="152.4" r="3.8"><title>R = 2.2 Å: 0.154</title></circle><circle class="pt" cx="275.0" cy="161.6" r="3.8"><title>R = 2.5 Å: 0.099</title></circle><circle class="pt" cx="313.2" cy="165.1" r="3.8"><title>R = 2.8 Å: 0.078</title></circle><text class="tick" x="192.0" y="214" text-anchor="middle">bond length R (Å)</text><text class="tick" x="11" y="95.0" text-anchor="middle" transform="rotate(-90 11 95.0)">HF weight |c₀|²</text></svg><p class="cap">Weight \(|c_0|^2\) of the HF determinant in the exact (FCI) state. Notebook 6.</p></div>
+<div class="data"><b>Your data</b>N₂, STO-3G; energies minus FCI, in Ha. Notebook 6.
+<div class="tablewrap"><table><tr><th>R (Å)</th><th>HF weight</th><th>HF</th><th>CCSD</th><th>CCSD(T)</th></tr><tr><td>0.90</td><td>0.954</td><td>0.106</td><td>+0.0017</td><td>+0.0007</td></tr><tr><td>1.00</td><td>0.938</td><td>0.130</td><td>+0.0026</td><td>+0.0012</td></tr><tr><td>1.10</td><td>0.917</td><td>0.158</td><td>+0.0039</td><td>+0.0022</td></tr><tr><td>1.25</td><td>0.872</td><td>0.207</td><td>+0.0071</td><td>+0.0048</td></tr><tr><td>1.40</td><td>0.804</td><td>0.265</td><td>+0.0115</td><td>+0.0087</td></tr><tr><td>1.60</td><td>0.649</td><td>0.357</td><td>+0.0127</td><td>+0.0097</td></tr><tr><td>1.80</td><td>0.426</td><td>0.466</td><td>−0.0195</td><td>−0.0228</td></tr><tr><td>2.00</td><td>0.247</td><td>0.584</td><td>−0.1018</td><td>−0.1085</td></tr><tr><td>2.20</td><td>0.154</td><td>0.693</td><td>–</td><td>–</td></tr><tr><td>2.50</td><td>0.099</td><td>0.823</td><td>–</td><td>–</td></tr><tr><td>2.80</td><td>0.078</td><td>0.915</td><td>–</td><td>–</td></tr></table><p class="tnote">– : CCSD does not converge.</p></div></div>
+<p>What the table shows:</p>
+<ul>
+<li><b>HF</b> misses more and more, close to 1 Ha at 2.8 Å: two neutral N atoms cannot be made of doubly occupied shared orbitals ("Breaking H₂ by hand").</li>
+<li><b>CCSD(T)</b> is good to a few mHa near equilibrium, about 10 mHa at 1.6 Å, and then fails: at 1.8 and 2.0 Å it lands <em>below</em> the exact energy, by 0.1 Ha at 2.0 Å, and from 2.2 Å on CCSD does not converge at all.</li>
+</ul>
+<div class="check"><p class="q">How can CCSD(T) give an energy below the exact one, when HF never can?</p><button type="button">Show answer</button><p class="a" hidden>Coupled cluster is not variational: its energy is not an expectation value of \(H\) in a state, so the upper bound does not apply.</p></div>
+</article>
+
+<article data-unit="3" data-title="Static and dynamic correlation">
+<p>N₂ shows two kinds of correlation energy, and chemists name them differently.</p>
+<ul>
+<li><b>Dynamic</b>: HF is a good start, and the correlation is many small corrections from electrons dodging each other. N₂ at 1.1 Å: the HF determinant carries 0.917 of the exact state. Coupled cluster is built for this.</li>
+<li><b>Static</b> (or strong): a few determinants with large weights, as in stretched H₂ (two at weight 1/2) or N₂ at 2.8 Å, where the HF determinant carries only 0.078. Methods that expand around one determinant fail.</li>
+</ul>
+<p><b>What DMRG cares about.</b> Neither: it does not expand around any determinant. Its cost is set, as for spin chains, by the entanglement across each cut of the orbital chain. Static correlation in a handful of orbitals is a few strongly entangled sites, which DMRG handles well. That is why DMRG is mostly run on an active space of strongly correlated orbitals, with the dynamic correlation of the remaining orbitals added by cheaper methods (see the review below).</p>
+<div class="data"><b>Your data</b>Weight of the HF determinant in the N₂ ground state: 0.917 at \(R = 1.10\) Å, 0.426 at 1.80 Å, 0.078 at 2.80 Å. Notebook 6.</div>
+<p class="cite">Helgaker, Jørgensen and Olsen, <a href="https://doi.org/10.1002/9781119019572">Wiley (2000)</a>; A. Baiardi and M. Reiher, <a href="https://arxiv.org/abs/1910.00137">arXiv:1910.00137</a>; <a href="https://doi.org/10.1063/1.5129672">J. Chem. Phys. 152, 040903 (2020)</a> (review of DMRG in chemistry).</p>
+<div class="check"><p class="q">Water near equilibrium, correlation energy \(-0.05\) Ha: static or dynamic, most likely?</p><button type="button">Show answer</button><p class="a" hidden>Dynamic: a molecule at its equilibrium geometry with all electrons paired is the case where HF is a good start. (Notebook 6 does not print water's HF weight; the N₂ numbers near equilibrium are the analogue.)</p></div>
+</article>
+
+<article data-unit="3" data-title="Review: parts 1–3" data-review>
+<p class="lead">Answer each from memory before you tap.</p>
+<div class="check"><p class="q">(Lessons 11–12) How many determinants does a (4, 4) active space have?</p><button type="button">Show answer</button><p class="a" hidden>\(N_\uparrow = N_\downarrow = 2\), \(\binom42^2 = 36\).</p></div>
+<div class="check"><p class="q">(Lesson 6) In which orbital basis is the HF determinant a product state with bond dimension 1?</p><button type="button">Show answer</button><p class="a" hidden>In its own HF orbitals: each is surely empty or doubly occupied.</p></div>
+<div class="check"><p class="q">(Lesson 14) What fraction of stretched H₂'s exact state is the HF determinant, and what is the rest?</p><button type="button">Show answer</button><p class="a" hidden>Half; the other half is the double excitation \(|\sigma_u^2\rangle\), with a minus sign.</p></div>
+<div class="check"><p class="q">(Lesson 9) What does \(-g_{ijji}\) in the HF energy describe?</p><button type="button">Show answer</button><p class="a" hidden>Exchange: a correction between same-spin electrons in orbitals \(i\) and \(j\), from antisymmetry.</p></div>
+</article>
+
+<article data-unit="4" data-title="Orbitals as sites">
+<p>Now the DMRG view. Line the \(K\) orbitals up, and the molecule is a chain:</p>
+<div class="tn" data-d="chain"></div>
+<div class="tablewrap"><table>
+<tr><th></th><th>TFIM chain</th><th>molecule</th></tr>
+<tr><td>site</td><td>spin \(i\)</td><td>orbital \(p\)</td></tr>
+<tr><td>local states</td><td>\(d = 2\)</td><td>\(d = 4\): 0, \(\uparrow\), \(\downarrow\), \(\uparrow\downarrow\)</td></tr>
+<tr><td>terms in \(H\)</td><td>neighbours</td><td>every pair and quadruple</td></tr>
+<tr><td>MPO bond dim.</td><td>\(D = 3\)</td><td>grows as \(K^2\)</td></tr>
+<tr><td>site order</td><td>fixed by lattice</td><td>your choice</td></tr>
+</table></div>
+<p>The fermion signs of "Electrons as occupation numbers" become a Jordan–Wigner string inside the MPO, as for any fermion chain. The four site states carry definite particle number \(N\) and \(S_z\), so the tensors split into symmetry blocks, as with TeNPy's <code>conserve</code>.</p>
+<div class="data"><b>Your data</b><code>driver.basis[0]</code> prints the four states of one site: \(N = 0\), \(S_z = 0\); \(N = 1\), \(S_z = \tfrac12\); \(N = 1\), \(S_z = -\tfrac12\); \(N = 2\), \(S_z = 0\). Notebook 6.</div>
+<p class="code">In the code: <code>DMRGDriver(symm_type=SymmetryTypes.SZ)</code> and <code>driver.initialize_system(n_sites=n_orb, n_elec=n_elec, spin=spin)</code>, block2.</p>
+<p class="cite">P. Jordan and E. Wigner, <a href="https://doi.org/10.1007/BF01331938">Z. Phys. 47, 631 (1928)</a>; S. R. White and R. L. Martin, <a href="https://arxiv.org/abs/cond-mat/9808118">arXiv:cond-mat/9808118</a>; <a href="https://doi.org/10.1063/1.478295">J. Chem. Phys. 110, 4127 (1999)</a> (first DMRG for molecules).</p>
+<div class="check"><p class="q">N₂ in STO-3G: the chain's full Hilbert space has \(4^{10} \approx 10^6\) states, but FCI needs only \(1.4\times10^4\). Why the difference?</p><button type="button">Show answer</button><p class="a" hidden>\(4^{10}\) counts every electron number and spin. Fixing \(N_\uparrow = N_\downarrow = 7\) leaves one block of \(120^2 = 14\,400\); the symmetry blocks of the MPS do the same.</p></div>
+</article>
+
+<article data-unit="4" data-title="Writing H term by term">
+<p>How do you hand the molecular \(H\) to a DMRG code? The same way as any lattice model: as a sum of operator strings with coefficients, which the package compresses into an MPO.</p>
+<p><b>The letters.</b> block2 writes an operator string as letters: <code>c</code> and <code>d</code> create and annihilate a spin-up electron, <code>C</code> and <code>D</code> a spin-down one. <code>add_sum_term(string, array)</code> adds \(\sum\) <code>array[i, j, ...]</code> times the string, with the indices in the order of the letters.</p>
+<pre>def chem_mpo(h1e, g2e, ecore):
+    b = driver.expr_builder()
+    b.add_const(ecore)
+    for s in ["cd", "CD"]:
+        b.add_sum_term(s, h1e)
+    g = 0.5 * g2e.transpose(0, 2, 3, 1)
+    for s in ["ccdd", "cCDd",
+              "CcdD", "CCDD"]:
+        b.add_sum_term(s, g)
+    expr = b.finalize(adjust_order=True,
+                      fermionic_ops="cdCD")
+    return driver.get_mpo(expr)</pre>
+<p><b>Worked example.</b> <code>"cd"</code> with <code>h1e</code> is \(\sum_{pq} h_{pq}\, a^\dagger_{p\uparrow} a_{q\uparrow}\), the spin-up hopping. For the two-electron term take \(\sigma = \uparrow\), \(\tau = \downarrow\): \(a^\dagger_{p\uparrow} a^\dagger_{r\downarrow} a_{s\downarrow} a_{q\uparrow}\) is the string <code>"cCDd"</code> with indices in the order \(p, r, s, q\). Its coefficient is \(\tfrac12 g_{pqrs}\), and <code>transpose(0, 2, 3, 1)</code> makes an array \(T\) with \(T_{prsq} = g_{pqrs}\), indices in the operator order. The four strings are the four spin choices \(\sigma\tau\).</p>
+<p><code>finalize</code> sorts every string into site order, with the fermion signs of the letters in <code>fermionic_ops</code> (the Jordan–Wigner string), and <code>get_mpo</code> compresses the sum into an MPO.</p>
+<div class="data"><b>Your data</b>Water: block2's ready-made molecular MPO, <code>driver.get_qc_mpo(h1e, g2e, ecore)</code>, gives the same DMRG energy as <code>chem_mpo</code>, difference \(-1.1\times10^{-12}\) Ha. Notebook 6.</div>
+<p>The same builder takes any Hamiltonian written as operator strings, a molecule or a lattice model; <code>get_qc_mpo</code> is only a shortcut for the molecular case.</p>
+<div class="check"><p class="q">Which string, on one site \(i\), gives the Hubbard interaction \(U n_{i\uparrow} n_{i\downarrow}\)?</p><button type="button">Show answer</button><p class="a" hidden><code>"cdCD"</code> with all four indices equal to \(i\): \(a^\dagger_{i\uparrow}a_{i\uparrow}\,a^\dagger_{i\downarrow}a_{i\downarrow} = n_{i\uparrow}n_{i\downarrow}\). Notebook 6's last exercise builds the Hubbard chain this way.</p></div>
+</article>
+
+<article data-unit="4" data-title="Why the MPO is big">
+<p>The TFIM MPO has \(D = 3\) because each bond only has to remember "nothing yet", "an \(X\) waiting for its partner" or "done". Ask the same question for one term \(a^\dagger_p a^\dagger_r a_s a_q\) of the molecular \(H\), with a cut somewhere in the chain:</p>
+<div class="tn" data-d="mpocut"></div>
+<p><b>Count what the bond must remember</b>, with \(\ell\) orbitals left of the cut:</p>
+<ul>
+<li>one of the four operators on the left: which one and where, about \(\ell\) channels;</li>
+<li>two on the left: which pair, about \(\ell^2\) channels;</li>
+<li>three on the left: which triple, \(\ell^3\), too many. The trick: sum the triple with its integrals \(g\) on the left into one operator per remaining right index (a <em>complementary operator</em>), so about \(K\) channels again.</li>
+</ul>
+<p>The pairs dominate, so \(D\) grows as \(K^2\), however the MPO is built.</p>
+<div class="data"><b>Your data</b>Largest bond dimension of <code>chem_mpo</code> for hydrogen chains H\(_K\) (STO-3G, \(K\) orbitals): \(K = 4, 6, 8, 10, 12, 14, 16\) give \(D = 51, 99, 163, 243, 339, 451, 579\). A quadratic fit gives exactly \(D = 2K^2 + 4K + 3\). Notebook 6.</div>
+<p>A matvec costs \(\chi^3 D d^2\), so every DMRG step is more expensive than for the TFIM. That cost is polynomial, though. What sets \(\chi\) is, as always, the entanglement.</p>
+<p class="cite">G. K.-L. Chan et al., <a href="https://arxiv.org/abs/1605.02611">arXiv:1605.02611</a>; <a href="https://doi.org/10.1063/1.4955108">J. Chem. Phys. 145, 014102 (2016)</a>.</p>
+<div class="check"><p class="q">At the same \(\chi\), how much more does one matvec cost for \(K = 10\) orbitals than for the TFIM?</p><button type="button">Show answer</button><p class="a" hidden>\(D d^2\) is \(243 \times 16 = 3888\) against \(3 \times 4 = 12\): about 324 times more.</p></div>
+</article>
+
+<article data-unit="4" data-title="DMRG on water">
+<p>All the pieces are in place. The whole calculation, from molecule to energy:</p>
+<pre>mol = gto.M(atom=..., basis="sto-3g")
+mf = scf.RHF(mol).run()
+(n_orb, n_elec, spin, ecore,
+ h1e, g2e, _) = itg.get_rhf_integrals(
+    mf, g2e_symm=1)
+driver.initialize_system(n_sites=n_orb,
+    n_elec=n_elec, spin=spin)
+mpo = chem_mpo(h1e, g2e, ecore)
+ket = driver.get_random_mps(tag="GS",
+    bond_dim=100)
+E = driver.dmrg(mpo, ket, n_sweeps=12,
+    bond_dims=[100],
+    noises=[1e-4]*4 + [1e-5]*4 + [0],
+    thrds=[1e-10])</pre>
+<p>In the course's words: <code>chem_mpo</code> is the MPO of the previous lessons, built term by term from \(h\), \(g\) and \(E_\text{core}\); <code>bond_dims</code> is \(\chi\) for each sweep (block2 calls it \(M\)); <code>noises</code> is the mixer, on for the first sweeps and then off; <code>thrds</code> is the tolerance of the Davidson eigensolver, which block2 uses instead of Lanczos.</p>
+<div class="data"><b>Your data</b>Water, STO-3G (7 orbitals, 10 electrons), \(\chi = 100\): \(E_\text{DMRG} = -75.0126471190\) Ha, \(E_\text{FCI} = -75.0126471190\) Ha, difference \(1.2\times10^{-11}\) Ha. Notebook 6.</div>
+<p class="cite">H. Zhai et al., <a href="https://arxiv.org/abs/2310.03920">arXiv:2310.03920</a>; <a href="https://doi.org/10.1063/5.0180424">J. Chem. Phys. 159, 234801 (2023)</a> (block2).</p>
+<div class="check"><p class="q">Why is the error \(10^{-11}\), with no truncation error at all? Look at the middle cut of the 7-site chain.</p><button type="button">Show answer</button><p class="a" hidden>The cut after 3 orbitals has \(4^3 = 64\) states on the left (fewer still in each symmetry block), less than \(\chi = 100\). Nothing is ever truncated, so DMRG is exact diagonalization here.</p></div>
+</article>
+
+<article data-unit="4" data-title="DMRG along the N₂ curve">
+<p>Now the case where coupled cluster failed. Notebook 6 runs DMRG with \(\chi = 200\) at each bond length of "Breaking N₂". Here truncation is real: the middle cut of the 10-orbital chain has \(4^5 = 1024\) states on each side.</p>
+<div class="data"><b>Your data</b>N₂, STO-3G, \(\chi = 200\), DMRG \(-\) FCI in Ha: \(+4.5\times10^{-12}\) at 1.1 Å, \(+2.4\times10^{-11}\) at 1.6 Å, \(+8.3\times10^{-11}\) at 2.0 Å, \(+7.1\times10^{-11}\) at 2.8 Å; better than \(10^{-8}\) Ha at all 11 bond lengths, including the three where CCSD does not converge. Notebook 6.</div>
+<p>DMRG is variational, like HF, so it cannot land below the exact energy by more than numerical noise. And it never assumed one determinant was dominant: at 2.8 Å the HF determinant carries 0.078 of the state, and DMRG does not notice.</p>
+<p>The point is not N₂ in STO-3G, where FCI is cheap. It is that DMRG's cost does not grow with the number of important determinants, only with the entanglement. So it keeps working when \(K\) is too big for FCI, as long as the entanglement stays moderate.</p>
+<div class="check"><p class="q">Which single number would you need to know to predict the \(\chi\) DMRG needs for a stretched molecule?</p><button type="button">Show answer</button><p class="a" hidden>The entanglement entropy across the cuts of the orbital chain, as for spin chains ("a state with entropy \(S\) needs about \(2^S\) Schmidt values"). Not the number of important determinants.</p></div>
+</article>
+
+<article data-unit="4" data-title="Review: parts 1–4" data-review>
+<p class="lead">Answer each from memory before you tap.</p>
+<div class="check"><p class="q">(Lesson 20) Use \(D = 2K^2 + 4K + 3\) to predict the MPO bond dimension of H₁₆. Does it match the notebook?</p><button type="button">Show answer</button><p class="a" hidden>\(2\cdot256 + 64 + 3 = 579\), exactly the printed value.</p></div>
+<div class="check"><p class="q">(Lessons 13, 15) Name the two reasons coupled cluster fails for stretched N₂ while DMRG does not.</p><button type="button">Show answer</button><p class="a" hidden>Coupled cluster expands around one determinant that no longer dominates, and it is not variational, so its error can go either way. DMRG assumes neither.</p></div>
+<div class="check"><p class="q">(Lesson 18) What are the four local states of an orbital site, and which symmetry labels do they carry?</p><button type="button">Show answer</button><p class="a" hidden>Empty, \(\uparrow\), \(\downarrow\), \(\uparrow\downarrow\), with \((N, S_z) = (0, 0), (1, \tfrac12), (1, -\tfrac12), (2, 0)\).</p></div>
+<div class="check"><p class="q">(Lesson 19) Which block2 string and array give the spin-down hopping \(\sum_{pq} h_{pq}\, a^\dagger_{p\downarrow} a_{q\downarrow}\)?</p><button type="button">Show answer</button><p class="a" hidden><code>add_sum_term("CD", h1e)</code>: capital letters are spin down, and the indices of <code>h1e</code> follow the letters, \(p\) then \(q\).</p></div>
+<div class="check"><p class="q">(Lesson 2) Why does DMRG's answer depend on the basis set even when it matches FCI to \(10^{-11}\)?</p><button type="button">Show answer</button><p class="a" hidden>FCI is exact only within the basis. A small basis like STO-3G is far from the continuum limit, whatever the solver.</p></div>
+</article>
+
+<article data-unit="5" data-title="Orbital order matters">
+<p>On a lattice, the chain order is given. For a molecule you choose it, and the choice changes the entanglement of every cut. Notebook 6 tests this on H₁₀, ten hydrogen atoms in a line 1.5 Å apart (10 orbitals, FCI still instant).</p>
+<p><b>Two choices of orbitals</b>, which give the same FCI energy:</p>
+<ul>
+<li><b>HF orbitals</b>, ordered by energy. Each is spread over the whole chain.</li>
+<li><b>Localized orbitals</b>: rotate the occupied orbitals among themselves, and the empty ones among themselves, to make each as compact as possible (Boys localization); then order them by position along the molecule. In this basis \(h_{pq}\) is nearly tridiagonal: a tight-binding chain.</li>
+</ul>
+<div class="plot"><svg viewBox="0 0 340 230" width="340" role="img" aria-label="H10 energy error against bond dimension: with Hartree-Fock orbitals it falls only from 0.2 to 0.025 Ha between chi 8 and 64; with localized orbitals from 5e-3 to 1e-7 Ha"><line class="grid" x1="82.0" y1="12" x2="82.0" y2="186"/><text class="tick" x="82.0" y="201" text-anchor="middle">8</text><line class="grid" x1="155.5" y1="12" x2="155.5" y2="186"/><text class="tick" x="155.5" y="201" text-anchor="middle">16</text><line class="grid" x1="228.9" y1="12" x2="228.9" y2="186"/><text class="tick" x="228.9" y="201" text-anchor="middle">32</text><line class="grid" x1="302.4" y1="12" x2="302.4" y2="186"/><text class="tick" x="302.4" y="201" text-anchor="middle">64</text><line class="grid" x1="60" y1="178.8" x2="326" y2="178.8"/><text class="tick" x="54" y="182.8" text-anchor="end">10⁻⁷</text><line class="grid" x1="60" y1="131.2" x2="326" y2="131.2"/><text class="tick" x="54" y="135.2" text-anchor="end">10⁻⁵</text><line class="grid" x1="60" y1="83.5" x2="326" y2="83.5"/><text class="tick" x="54" y="87.5" text-anchor="end">10⁻³</text><line class="grid" x1="60" y1="35.8" x2="326" y2="35.8"/><text class="tick" x="54" y="39.8" text-anchor="end">10⁻¹</text><line class="axis" x1="60" y1="186" x2="326" y2="186"/><polyline class="ln1" points="82.0,28.2 155.5,34.8 228.9,39.1 302.4,50.2"/><circle class="pt" cx="82.0" cy="28.2" r="3.8"><title>HF orbitals: 8, 2.1e-01</title></circle><circle class="pt" cx="155.5" cy="34.8" r="3.8"><title>HF orbitals: 16, 1.1e-01</title></circle><circle class="pt" cx="228.9" cy="39.1" r="3.8"><title>HF orbitals: 32, 7.3e-02</title></circle><circle class="pt" cx="302.4" cy="50.2" r="3.8"><title>HF orbitals: 64, 2.5e-02</title></circle><polyline class="ln2" points="82.0,67.7 155.5,97.0 228.9,133.7 302.4,176.9"/><circle class="pt2" cx="82.0" cy="67.7" r="3.8"><title>localized: 8, 4.6e-03</title></circle><circle class="pt2" cx="155.5" cy="97.0" r="3.8"><title>localized: 16, 2.7e-04</title></circle><circle class="pt2" cx="228.9" cy="133.7" r="3.8"><title>localized: 32, 7.8e-06</title></circle><circle class="pt2" cx="302.4" cy="176.9" r="3.8"><title>localized: 64, 1.2e-07</title></circle><text class="lab c1" x="200" y="62">HF orbitals</text><text class="lab c2" x="70" y="176">localized</text><text class="tick" x="193.0" y="224" text-anchor="middle">bond dimension χ</text><text class="tick" x="11" y="99.0" text-anchor="middle" transform="rotate(-90 11 99.0)">error (Ha)</text></svg><p class="cap">H₁₀, energy error against FCI. Notebook 6.</p></div>
+<div class="data"><b>Your data</b>\(\chi = 8, 16, 32, 64\): HF orbitals \(2.1\times10^{-1}\), \(1.1\times10^{-1}\), \(7.3\times10^{-2}\), \(2.5\times10^{-2}\) Ha; localized \(4.6\times10^{-3}\), \(2.7\times10^{-4}\), \(7.8\times10^{-6}\), \(1.2\times10^{-7}\) Ha. Notebook 6.</div>
+<p>The Coulomb integrals still decay only as one over distance in both bases, so the MPO stays big. What changes is the entanglement of the state across each cut.</p>
+<p class="code">In the code: <code>lo.Boys(mol, mf.mo_coeff).kernel()</code>, PySCF.</p>
+<p class="cite">J. M. Foster and S. F. Boys, <a href="https://doi.org/10.1103/RevModPhys.32.300">Rev. Mod. Phys. 32, 300 (1960)</a>.</p>
+<div class="check"><p class="q">Why does the HF basis need so much more \(\chi\), when it describes the same state?</p><button type="button">Show answer</button><p class="a" hidden>Each HF orbital spreads over all atoms, so every cut of the orbital chain separates electrons that are correlated in space: high entanglement. Localized orbitals ordered along the molecule make each cut a cut in space, as in a gapped 1D chain.</p></div>
+</article>
+
+<article data-unit="5" data-title="Fiedler ordering">
+<p>Most molecules are not lines, so there is no obvious order. A standard recipe puts strongly coupled orbitals next to each other.</p>
+<p><b>Recipe.</b> Build a graph: one node per orbital, edge weights \(w_{pq}\) measuring how strongly orbitals \(p\) and \(q\) are coupled. Form its graph Laplacian \(L = \text{diag}(\sum_q w_{pq}) - w\). Its lowest eigenvector is constant; order the orbitals by the entries of the second one, the <em>Fiedler vector</em>.</p>
+<p><b>Worked example.</b> Three orbitals, 1–2 and 2–3 coupled with weight 1, 1–3 not at all:</p>
+<div class="math">\(L = \begin{pmatrix} 1 &amp; -1 &amp; 0 \\ -1 &amp; 2 &amp; -1 \\ 0 &amp; -1 &amp; 1 \end{pmatrix}, \qquad L\begin{pmatrix} 1 \\ 0 \\ -1 \end{pmatrix} = 1\cdot\begin{pmatrix} 1 \\ 0 \\ -1 \end{pmatrix}\)</div>
+<p>The eigenvalues are 0, 1, 3, so \((1, 0, -1)\) is the Fiedler vector, and sorting by it gives the order 1, 2, 3: the coupled pairs end up neighbours.</p>
+<div class="data"><b>Your data</b>H₁₀, localized orbitals shuffled to chain positions [4 6 2 7 3 5 9 0 8 1]; after Fiedler ordering [9 8 7 6 5 4 3 2 1 0], the chain read backwards. Error at \(\chi = 16\): \(1.2\times10^{-1}\) Ha shuffled, \(2.7\times10^{-4}\) Ha after Fiedler. Notebook 6.</div>
+<p class="code">In the code: <code>idx = driver.orbital_reordering(h1e, g2e)</code>, block2.</p>
+<p class="cite">G. Barcza, Ö. Legeza, K. H. Marti and M. Reiher, <a href="https://arxiv.org/abs/1008.4607">arXiv:1008.4607</a>; <a href="https://doi.org/10.1103/PhysRevA.83.012508">Phys. Rev. A 83, 012508 (2011)</a>.</p>
+<div class="check"><p class="q">Fiedler returned the chain backwards. Why is that just as good?</p><button type="button">Show answer</button><p class="a" hidden>Reversing a chain gives the same set of cuts, so the same entanglement and the same DMRG cost. (An eigenvector is fixed only up to sign, and flipping the sign reverses the order.)</p></div>
+</article>
+
+<article data-unit="5" data-title="Extrapolating in the discarded weight">
+<p>For a real molecule there is no FCI to compare with. The course's rule takes its place: the energy error tracks the discarded weight \(\varepsilon\), so run several \(\chi\), fit \(E\) against \(\varepsilon\), and read off \(E\) at \(\varepsilon = 0\).</p>
+<div class="plot"><svg viewBox="0 0 340 230" width="340" role="img" aria-label="H10 energy error against discarded weight on log-log axes: six points from chi 8 to 32 roughly on a line of slope 1"><line class="grid" x1="126.4" y1="12" x2="126.4" y2="186"/><text class="tick" x="126.4" y="201" text-anchor="middle">10⁻⁵</text><line class="grid" x1="207.0" y1="12" x2="207.0" y2="186"/><text class="tick" x="207.0" y="201" text-anchor="middle">10⁻⁴</text><line class="grid" x1="287.6" y1="12" x2="287.6" y2="186"/><text class="tick" x="287.6" y="201" text-anchor="middle">10⁻³</text><line class="grid" x1="60" y1="165.6" x2="326" y2="165.6"/><text class="tick" x="54" y="169.6" text-anchor="end">10⁻⁵</text><line class="grid" x1="60" y1="114.4" x2="326" y2="114.4"/><text class="tick" x="54" y="118.4" text-anchor="end">10⁻⁴</text><line class="grid" x1="60" y1="63.2" x2="326" y2="63.2"/><text class="tick" x="54" y="67.2" text-anchor="end">10⁻³</text><line class="grid" x1="60" y1="12.0" x2="326" y2="12.0"/><text class="tick" x="54" y="16.0" text-anchor="end">10⁻²</text><line class="axis" x1="60" y1="186" x2="326" y2="186"/><polyline class="ln1" points="299.3,29.3 271.4,57.4 247.7,92.3 175.8,110.4 163.7,127.3 80.6,171.1"/><circle class="pt" cx="299.3" cy="29.3" r="3.8"><title>χ = 8,12,16,20,24,32: 0.0014, 4.6e-03</title></circle><circle class="pt" cx="271.4" cy="57.4" r="3.8"><title>χ = 8,12,16,20,24,32: 0.00063, 1.3e-03</title></circle><circle class="pt" cx="247.7" cy="92.3" r="3.8"><title>χ = 8,12,16,20,24,32: 0.00032, 2.7e-04</title></circle><circle class="pt" cx="175.8" cy="110.4" r="3.8"><title>χ = 8,12,16,20,24,32: 4.1e-05, 1.2e-04</title></circle><circle class="pt" cx="163.7" cy="127.3" r="3.8"><title>χ = 8,12,16,20,24,32: 2.9e-05, 5.6e-05</title></circle><circle class="pt" cx="80.6" cy="171.1" r="3.8"><title>χ = 8,12,16,20,24,32: 2.7e-06, 7.8e-06</title></circle><text class="lab c1" x="190" y="150">χ = 8: top right</text><text class="lab c1" x="190" y="166">χ = 32: bottom left</text><text class="tick" x="193.0" y="224" text-anchor="middle">discarded weight ε</text><text class="tick" x="11" y="99.0" text-anchor="middle" transform="rotate(-90 11 99.0)">error (Ha)</text></svg><p class="cap">H₁₀, localized orbitals, \(\chi = 8\) to 32: energy error against FCI versus the largest discarded weight of the last sweep. Notebook 6.</p></div>
+<div class="data"><b>Your data</b>H₁₀, localized orbitals. \(\chi = 8\): error \(4.6\times10^{-3}\) Ha, \(\varepsilon = 1.4\times10^{-3}\). \(\chi = 32\): error \(7.8\times10^{-6}\) Ha, \(\varepsilon = 2.7\times10^{-6}\). Log-log slope over all six runs: 0.95. A straight-line fit of \(E\) against \(\varepsilon\) through the three largest \(\chi\) (20, 24, 32) lands \(-6.3\times10^{-6}\) Ha from FCI. Notebook 6.</div>
+<p>The slope is close to 1, as for the TFIM, but the points scatter by a factor of a few: with symmetry blocks, \(\chi\) is shared among sectors in uneven steps. So the extrapolation is only as close as the best run itself. In practice the extrapolated energy and the spread between different fits are reported together, as an estimate and its uncertainty.</p>
+<p class="code">In the code: <code>driver.get_dmrg_results()[1][-1]</code> is the largest discarded weight of the last sweep.</p>
+<p class="cite">Baiardi and Reiher, <a href="https://arxiv.org/abs/1910.00137">arXiv:1910.00137</a>.</p>
+<div class="check"><p class="q">With a slope of 1, how much does the error drop when \(\varepsilon\) drops from \(1.4\times10^{-3}\) to \(2.7\times10^{-6}\)?</p><button type="button">Show answer</button><p class="a" hidden>By the same factor, about 500. The actual drop, \(4.6\times10^{-3}\) to \(7.8\times10^{-6}\), is about 600.</p></div>
+</article>
+
+<article data-unit="5" data-title="Orbital entropies">
+<p>Which orbitals carry the correlation? DMRG answers directly, by measuring each site's entanglement with the rest.</p>
+<p><b>Recipe.</b> Take the reduced density matrix \(\rho_p\) of one orbital, a \(4\times4\) matrix since \(d = 4\). Because the state has fixed \(N\) and \(S_z\), \(\rho_p\) is diagonal in the four site states, with the probabilities \(w_0, w_\uparrow, w_\downarrow, w_{\uparrow\downarrow}\) of finding the orbital empty, singly or doubly occupied. The <em>single-orbital entropy</em> is</p>
+<div class="math">\(s_p = -\sum_{n} w_n \log_2 w_n\)</div>
+<p>It is 0 for an orbital that is surely empty or surely full, as in HF, and at most 2 bits, when all four probabilities are \(1/4\).</p>
+<p><b>Worked example.</b> Stretched H₂ ("Breaking H₂ by hand"): orbital \(\sigma_g\) is empty with probability 1/2 and doubly occupied with probability 1/2, so \(s_{\sigma_g} = 1\) bit. A strongly correlated orbital has a large \(s_p\).</p>
+<p class="code">In the code: <code>driver.get_orbital_entropies(ket, orb_type=1)</code>, in nats; divide by \(\ln 2\) for bits.</p>
+<p class="cite">J. Rissler, R. M. Noack and S. R. White, <a href="https://arxiv.org/abs/cond-mat/0508524">arXiv:cond-mat/0508524</a>; <a href="https://doi.org/10.1016/j.chemphys.2005.10.018">Chem. Phys. 323, 519 (2006)</a>.</p>
+<div class="check"><p class="q">In stretched H₂, use the atomic orbitals \(a, b\) instead. What is \(s_a\)?</p><button type="button">Show answer</button><p class="a" hidden>1 bit as well. In \((a^\dagger_{a\uparrow}a^\dagger_{b\downarrow} + a^\dagger_{b\uparrow}a^\dagger_{a\downarrow})|0\rangle/\sqrt2\), orbital \(a\) holds one \(\uparrow\) or one \(\downarrow\) electron, probability 1/2 each.</p></div>
+</article>
+
+<article data-unit="5" data-title="Choosing an active space">
+<p>The entropies turn the choice of active space ("Active spaces") from intuition into a measurement: the orbitals with large \(s_p\) must be treated exactly; those with \(s_p \approx 0\) can be frozen or dropped.</p>
+<div class="plot"><svg viewBox="0 0 340 220" width="340" role="img" aria-label="Single-orbital entropies of N2 for the ten Hartree-Fock orbitals: small at 1.1 angstrom; at 2.4 angstrom orbitals 4 to 9 are close to 2 bits and orbitals 0 and 1 are zero"><line class="grid" x1="54" y1="178.0" x2="328" y2="178.0"/><text class="tick" x="48" y="182.0" text-anchor="end">0</text><line class="grid" x1="54" y1="140.0" x2="328" y2="140.0"/><text class="tick" x="48" y="144.0" text-anchor="end">0.5</text><line class="grid" x1="54" y1="102.0" x2="328" y2="102.0"/><text class="tick" x="48" y="106.0" text-anchor="end">1</text><line class="grid" x1="54" y1="64.0" x2="328" y2="64.0"/><text class="tick" x="48" y="68.0" text-anchor="end">1.5</text><line class="grid" x1="54" y1="26.0" x2="328" y2="26.0"/><text class="tick" x="48" y="30.0" text-anchor="end">2</text><rect class="b1" x="57.0" y="178.0" width="10.7" height="0.0"><title>orbital 0, R = 1.1 Å: 0.0 bits</title></rect><rect class="b2" x="67.7" y="178.0" width="10.7" height="0.0"><title>orbital 0, R = 2.4 Å: 0.0 bits</title></rect><text class="tick" x="67.7" y="193" text-anchor="middle">0</text><rect class="b1" x="84.4" y="178.0" width="10.7" height="0.0"><title>orbital 1, R = 1.1 Å: 0.0 bits</title></rect><rect class="b2" x="95.1" y="178.0" width="10.7" height="0.0"><title>orbital 1, R = 2.4 Å: 0.0 bits</title></rect><text class="tick" x="95.1" y="193" text-anchor="middle">1</text><rect class="b1" x="111.8" y="171.9" width="10.7" height="6.1"><title>orbital 2, R = 1.1 Å: 0.08 bits</title></rect><rect class="b2" x="122.5" y="175.7" width="10.7" height="2.3"><title>orbital 2, R = 2.4 Å: 0.03 bits</title></rect><text class="tick" x="122.5" y="193" text-anchor="middle">2</text><rect class="b1" x="139.2" y="172.7" width="10.7" height="5.3"><title>orbital 3, R = 1.1 Å: 0.07 bits</title></rect><rect class="b2" x="149.9" y="175.7" width="10.7" height="2.3"><title>orbital 3, R = 2.4 Å: 0.03 bits</title></rect><text class="tick" x="149.9" y="193" text-anchor="middle">3</text><rect class="b1" x="166.6" y="150.6" width="10.7" height="27.4"><title>orbital 4, R = 1.1 Å: 0.36 bits</title></rect><rect class="b2" x="177.3" y="42.7" width="10.7" height="135.3"><title>orbital 4, R = 2.4 Å: 1.78 bits</title></rect><text class="tick" x="177.3" y="193" text-anchor="middle">4</text><rect class="b1" x="194.0" y="150.6" width="10.7" height="27.4"><title>orbital 5, R = 1.1 Å: 0.36 bits</title></rect><rect class="b2" x="204.7" y="33.6" width="10.7" height="144.4"><title>orbital 5, R = 2.4 Å: 1.9 bits</title></rect><text class="tick" x="204.7" y="193" text-anchor="middle">5</text><rect class="b1" x="221.4" y="169.6" width="10.7" height="8.4"><title>orbital 6, R = 1.1 Å: 0.11 bits</title></rect><rect class="b2" x="232.1" y="33.6" width="10.7" height="144.4"><title>orbital 6, R = 2.4 Å: 1.9 bits</title></rect><text class="tick" x="232.1" y="193" text-anchor="middle">6</text><rect class="b1" x="248.8" y="149.1" width="10.7" height="28.9"><title>orbital 7, R = 1.1 Å: 0.38 bits</title></rect><rect class="b2" x="259.5" y="33.6" width="10.7" height="144.4"><title>orbital 7, R = 2.4 Å: 1.9 bits</title></rect><text class="tick" x="259.5" y="193" text-anchor="middle">7</text><rect class="b1" x="276.2" y="149.1" width="10.7" height="28.9"><title>orbital 8, R = 1.1 Å: 0.38 bits</title></rect><rect class="b2" x="286.9" y="33.6" width="10.7" height="144.4"><title>orbital 8, R = 2.4 Å: 1.9 bits</title></rect><text class="tick" x="286.9" y="193" text-anchor="middle">8</text><rect class="b1" x="303.6" y="166.6" width="10.7" height="11.4"><title>orbital 9, R = 1.1 Å: 0.15 bits</title></rect><rect class="b2" x="314.3" y="42.0" width="10.7" height="136.0"><title>orbital 9, R = 2.4 Å: 1.79 bits</title></rect><text class="tick" x="314.3" y="193" text-anchor="middle">9</text><line class="half" x1="245.8" y1="18" x2="245.8" y2="178"/><text class="tick" x="241.8" y="14" text-anchor="end">← occupied in HF</text><text class="tick" x="249.8" y="14">empty →</text><line class="axis" x1="54" y1="178" x2="328" y2="178"/><rect class="b1" x="62" y="36.0" width="10" height="10"/><text class="lab" x="76" y="45.0">R = 1.1 Å</text><rect class="b2" x="62" y="55.0" width="10" height="10"/><text class="lab" x="76" y="64.0">R = 2.4 Å</text><text class="tick" x="191.0" y="214" text-anchor="middle">orbital p (HF, by energy)</text><text class="tick" x="10" y="102.0" text-anchor="middle" transform="rotate(-90 10 102.0)">s_p (bits)</text></svg><p class="cap">N₂, STO-3G, \(\chi = 200\): single-orbital entropies of the HF orbitals, ordered by energy (0 to 6 occupied in HF). Notebook 6.</p></div>
+<div class="data"><b>Your data</b>N₂, \(s_p\) in bits for orbitals 0 to 9. At \(R = 1.1\) Å: 0, 0, 0.08, 0.07, 0.36, 0.36, 0.11, 0.38, 0.38, 0.15 (total 1.88). At \(R = 2.4\) Å: 0, 0, 0.03, 0.03, 1.78, 1.9, 1.9, 1.9, 1.9, 1.79 (total 11.24). Notebook 6.</div>
+<p><b>Reading it.</b> Orbitals 0 and 1, the nitrogen 1s cores, carry no entropy at either length: freeze them. Near equilibrium the entropy is modest and sits in the bonding and antibonding orbitals of the triple bond, 4 to 9. Stretched, those six approach the 2-bit maximum: six electrons shared among six orbitals with no dominant configuration. That is a (6, 6) active space.</p>
+<p>Automated versions of this selection, run on large DMRG calculations, are used in practice.</p>
+<p class="cite">C. J. Stein and M. Reiher, <a href="https://arxiv.org/abs/1602.03835">arXiv:1602.03835</a>; <a href="https://doi.org/10.1021/acs.jctc.6b00156">J. Chem. Theory Comput. 12, 1760 (2016)</a>.</p>
+<div class="check"><p class="q">Orbitals 4 to 9 form the active space, and 0 to 3 are doubly occupied. Why 6 active electrons, out of 14?</p><button type="button">Show answer</button><p class="a" hidden>Orbitals 0 to 3 hold \(4 \times 2 = 8\) electrons, leaving \(14 - 8 = 6\): the six electrons of the triple bond.</p></div>
+</article>
+
+<article data-unit="5" data-title="Where to go next">
+<p>You now know what the electronic structure problem is, why HF and coupled cluster are not enough when bonds break, and how a molecule becomes a DMRG chain. What a production code such as block2 adds:</p>
+<ul>
+<li><b>Any Hamiltonian.</b> <code>expr_builder</code> takes any sum of fermion or spin operator strings ("Writing H term by term").</li>
+<li><b>Spin symmetry.</b> <code>SymmetryTypes.SU2</code> works with total-spin multiplets instead of \(S_z\) states, 3 per site instead of 4, and fixes the total spin \(S\). Point-group labels shrink the blocks further.</li>
+<li><b>Large active spaces</b>, up to about a hundred orbitals, with parallel and distributed sweeps (Zhai et al., "DMRG on water").</li>
+<li><b>More than the energy:</b> excited states, density matrices, orbital entropies and dynamical correlation functions from the same MPS.</li>
+</ul>
+<p><b>DMRG and quantum computers.</b> DMRG on large active spaces is the classical reference that quantum algorithms for chemistry are measured against. Lee et al. weigh quantum phase estimation against classical methods such as DMRG for ground-state energies, and conclude that evidence for an exponential quantum advantage across chemistry has yet to be found.</p>
+<p class="cite">S. Lee et al., <a href="https://arxiv.org/abs/2208.02199">arXiv:2208.02199</a>; <a href="https://doi.org/10.1038/s41467-023-37587-6">Nat. Commun. 14, 1952 (2023)</a>. Review: Baiardi and Reiher, <a href="https://arxiv.org/abs/1910.00137">arXiv:1910.00137</a>; <a href="https://doi.org/10.1063/1.5129672">J. Chem. Phys. 152, 040903 (2020)</a>.</p>
+<p>Notebook 6 (<code>06_quantum_chemistry_block2</code>) runs everything in this course and ends with exercises: SU(2) symmetry, a real basis set with an active space, random orbital orders, breaking all the bonds of H₁₀, and your own Hubbard chain written with <code>expr_builder</code>.</p>
+<div class="check"><p class="q">With <code>SU2</code>, a site has 3 states instead of 4. Which two of the four are merged?</p><button type="button">Show answer</button><p class="a" hidden>\(\uparrow\) and \(\downarrow\): they form one spin-1/2 doublet. Empty and doubly occupied are spin singlets and stay separate.</p></div>
+</article>
+
+<article data-unit="5" data-title="Review: the whole course" data-review>
+<p class="lead">Answer each from memory before you tap.</p>
+<div class="check"><p class="q">(Lesson 24) Two orbital bases give the same FCI energy. Why can DMRG need very different \(\chi\) in them?</p><button type="button">Show answer</button><p class="a" hidden>The state is the same, but its entanglement across the cuts of the orbital chain depends on the orbitals and their order.</p></div>
+<div class="check"><p class="q">(Lesson 27) An orbital has occupation probabilities \(w_0 = w_{\uparrow\downarrow} = 0\), \(w_\uparrow = w_\downarrow = 1/2\). What is \(s_p\)?</p><button type="button">Show answer</button><p class="a" hidden>1 bit.</p></div>
+<div class="check"><p class="q">(Lesson 7) Why does the correlation energy matter for chemistry, when it is under 0.1% of the total?</p><button type="button">Show answer</button><p class="a" hidden>Chemistry is energy differences, and \(E_\text{corr}\) (about 30 kcal/mol for water) is as large as a reaction energy.</p></div>
+<div class="check"><p class="q">(Lesson 26) Without FCI, how do you give an error bar on a DMRG energy?</p><button type="button">Show answer</button><p class="a" hidden>Run several \(\chi\), extrapolate \(E\) linearly in the discarded weight to zero, and use the spread between different fits as the uncertainty.</p></div>
+</article>
+
+</div>
+</div>
+
+<script>
+window.MathJax = { tex: { inlineMath: [["\\(", "\\)"]] }, svg: { fontCache: "global" }, startup: { typeset: false } };
+</script>
+<script src="https://cdn.jsdelivr.net/npm/mathjax@3.2.2/es5/tex-svg.js" async></script>
+<script>
+(function () {
+  // Tensor-network or circuit sketches, drawn as SVG. Delete entries you do not use.
+  const DIAGRAMS = {
+    levels: (() => {
+      const d = { w: 300, h: 200, alt: "water's seven Hartree-Fock orbitals as energy levels: orbitals 0 to 4 each hold an up and a down electron, orbitals 5 and 6 are empty", lines: [], texts: [], arrows: [] };
+      for (let p = 0; p < 7; p++) {
+        const y = 180 - 25 * p;
+        d.lines.push([100, y, 170, y]);
+        d.texts.push({ x: 88, y: y + 4, t: String(p), a: "end", small: 1 });
+        if (p < 5) d.arrows.push({ x: 135, y: y - 5, t: "↑↓" });
+      }
+      d.texts.push({ x: 88, y: 14, t: "orbital", a: "end", small: 1 });
+      d.texts.push({ x: 188, y: 134, t: "occupied (2 each)", a: "start", small: 1 }, { x: 188, y: 47, t: "empty", a: "start", small: 1 });
+      d.paths = ["M178 182 Q182 182 182 178 V84 Q182 80 178 80", "M178 57 Q182 57 182 53 V33 Q182 29 178 29"];
+      return d;
+    })(),
+    excite: (() => {
+      const d = { w: 320, h: 170, alt: "left: the Hartree-Fock determinant with the two lowest of four orbitals doubly occupied; right: a double excitation that moves both electrons of orbital 1 into orbital 2", lines: [], texts: [], arrows: [] };
+      [[30, [1, 1, 0, 0], "Φ₀ (Hartree–Fock)"], [190, [1, 0, 1, 0], "a double excitation"]].forEach(([x0, occ, lab]) => {
+        for (let p = 0; p < 4; p++) {
+          const y = 130 - 30 * p;
+          d.lines.push([x0, y, x0 + 90, y]);
+          if (occ[p]) d.arrows.push({ x: x0 + 45, y: y - 3, t: "↑↓" });
+        }
+        d.texts.push({ x: x0 + 45, y: 158, t: lab, small: 1 });
+      });
+      d.texts.push({ x: 180, y: 104, t: "i, j", a: "end", small: 1 }, { x: 180, y: 74, t: "a, b", a: "end", small: 1 });
+      
+      return d;
+    })(),
+    chain: { w: 330, h: 110, alt: "the orbitals as an MPS: one tensor per orbital, each with a physical leg of dimension 4, linked by bonds of dimension chi",
+      nodes: [{ id: "a", x: 40, y: 40, t: "1" }, { id: "b", x: 105, y: 40, t: "2" }, { id: "c", x: 170, y: 40, t: "3" }, { id: "k", x: 290, y: 40, t: "K" }],
+      edges: [["a", "b", "χ"], ["b", "c", "χ"]],
+      lines: [[185, 40, 212, 40], [248, 40, 275, 40]],
+      legs: [["a", 0, 30, "d = 4"], ["b", 0, 30, "4"], ["c", 0, 30, "4"], ["k", 0, 30, "4"]],
+      texts: [{ x: 230, y: 46, t: "⋯" }, { x: 165, y: 104, t: "one site per orbital, in an order you choose", small: 1 }] },
+    mpocut: { w: 330, h: 130, alt: "a chain of six orbital sites cut between sites 3 and 4; the operators a-dagger p and a q sit left of the cut, a-dagger r and a s right of it",
+      nodes: [1, 2, 3, 4, 5, 6].map((i) => ({ id: "s" + i, x: 40 + 50 * (i - 1), y: 70, t: String(i), s: "square" })),
+      edges: [["s1", "s2"], ["s2", "s3"], ["s3", "s4"], ["s4", "s5"], ["s5", "s6"]],
+      cuts: [[165, 22, 165, 98]],
+      arrows: [{ x: 40, y: 44, t: "a†", s: "p" }, { x: 140, y: 44, t: "a", s: "q" }, { x: 190, y: 44, t: "a†", s: "r" }, { x: 290, y: 44, t: "a", s: "s" }],
+      texts: [{ x: 165, y: 122, t: "the bond at the cut must remember the pair (p, q)", small: 1 }, { x: 160, y: 16, t: "left", a: "end", small: 1 }, { x: 170, y: 16, t: "right", a: "start", small: 1 }] },
+  };
+  // ---- Tensor-network diagrams -------------------------------------------------
+  // Each diagram is a small spec: nodes (tensors), edges (contracted indices),
+  // legs (open indices), plus optional raw lines, paths, dashed boxes and text.
+  const R = 15; // node half-size in px
+  const SHAPES = {
+    circle: (n) => `<circle cx="${n.x}" cy="${n.y}" r="${R}"/>`,
+    square: (n) => `<rect x="${n.x - R + 2}" y="${n.y - R + 2}" width="${2 * R - 4}" height="${2 * R - 4}" rx="3"/>`,
+    diamond: (n) => `<polygon points="${n.x},${n.y - R} ${n.x + R},${n.y} ${n.x},${n.y + R} ${n.x - R},${n.y}"/>`,
+    triR: (n) => `<polygon points="${n.x - R},${n.y - R} ${n.x + R},${n.y} ${n.x - R},${n.y + R}"/>`,
+    triL: (n) => `<polygon points="${n.x + R},${n.y - R} ${n.x - R},${n.y} ${n.x + R},${n.y + R}"/>`,
+    box: (n) => `<rect x="${n.x - n.w / 2}" y="${n.y - R}" width="${n.w}" height="${2 * R}" rx="6"/>`,
+    env: (n) => `<rect x="${n.x - 13}" y="${n.y - n.h / 2}" width="26" height="${n.h}" rx="6"/>`,
+  };
+  const esc = (t) => String(t).replace(/&/g, "&amp;").replace(/</g, "&lt;");
+  function drawDiagram(d) {
+    const by = Object.fromEntries((d.nodes || []).map((n) => [n.id, n]));
+    let out = "";
+    for (const b of d.boxes || [])
+      out += `<rect class="tn-box" x="${b.x}" y="${b.y}" width="${b.w}" height="${b.h}" rx="8"/>` +
+        (b.t ? `<text class="tn-boxlabel" x="${b.x + 4}" y="${b.y - 5}">${esc(b.t)}</text>` : "");
+    for (const p of d.paths || []) out += `<path class="tn-line" d="${p}"/>`;
+    for (const c of d.cuts || []) out += `<line class="tn-box" x1="${c[0]}" y1="${c[1]}" x2="${c[2]}" y2="${c[3]}"/>`;
+    for (const l of d.lines || []) out += `<line class="tn-line${l[4] ? " thick" : ""}" x1="${l[0]}" y1="${l[1]}" x2="${l[2]}" y2="${l[3]}"/>`;
+    for (const e of d.edges || []) {
+      const a = by[e[0]], b = by[e[1]];
+      out += `<line class="tn-line${e[3] ? " thick" : ""}" x1="${a.x}" y1="${a.y}" x2="${b.x}" y2="${b.y}"/>`;
+      if (e[2]) out += `<text class="tn-idx" x="${(a.x + b.x) / 2 + (a.y === b.y ? 0 : 7)}" y="${(a.y + b.y) / 2 + (a.y === b.y ? -6 : 4)}" text-anchor="${a.y === b.y ? "middle" : "start"}">${esc(e[2])}</text>`;
+    }
+    for (const g of d.legs || []) {
+      const n = by[g[0]], x2 = n.x + g[1], y2 = n.y + g[2];
+      out += `<line class="tn-line${g[4] ? " thick" : ""}" x1="${n.x}" y1="${n.y}" x2="${x2}" y2="${y2}"/>`;
+      if (g[3]) {
+        const anchor = g[1] > 0 && g[2] === 0 ? "start" : g[1] < 0 && g[2] === 0 ? "end" : "middle";
+        const lx = x2 + (anchor === "start" ? 4 : anchor === "end" ? -4 : 0);
+        const ly = y2 + (g[2] > 0 ? 13 : g[2] < 0 ? -5 : 4);
+        out += `<text class="tn-idx" x="${lx}" y="${ly}" text-anchor="${anchor}">${esc(g[3])}</text>`;
+      }
+    }
+    for (const n of d.nodes || []) {
+      out += `<g class="tn-node ${n.tone || ""}">${SHAPES[n.s || "circle"](n)}</g>`;
+      if (n.t) {
+        const dx = n.s === "triR" ? -5 : n.s === "triL" ? 5 : 0;
+        out += `<text class="tn-label${n.tone === "accent" ? " on-accent" : ""}${String(n.t).length > 2 && n.s !== "box" ? " tight" : ""}" x="${n.x + dx}" y="${n.y + 4.5}" text-anchor="middle">${esc(n.t)}</text>`;
+      }
+    }
+    for (const a of d.arrows || []) out += `<text class="tn-arrow" x="${a.x}" y="${a.y}" text-anchor="middle">${esc(a.t)}${a.s ? `<tspan class="tn-sub" dy="4">${esc(a.s)}</tspan>` : ""}</text>`;
+    for (const t of d.texts || [])
+      out += `<text class="tn-text${t.small ? " small" : ""}" x="${t.x}" y="${t.y}" text-anchor="${t.a || "middle"}">${esc(t.t)}</text>`;
+    return `<svg viewBox="0 0 ${d.w} ${d.h}" width="${d.w}" role="img" aria-label="${esc(d.alt || "tensor network diagram")}">${out}</svg>`;
+  }
+  function renderDiagrams(root) {
+    root.querySelectorAll(".tn[data-d]").forEach((el) => {
+      const d = DIAGRAMS[el.dataset.d];
+      if (d) el.innerHTML = drawDiagram(d);
+    });
+  }
+
+  const units = {
+    1: ["The electronic structure problem", "What is being computed, and in what language."],
+    2: ["Mean field and the Hamiltonian", "Hartree–Fock, the correlation energy, and the two arrays DMRG sees."],
+    3: ["Exact and approximate answers", "FCI, active spaces, coupled cluster, and what happens when bonds break."],
+    4: ["The molecule as a chain", "Orbitals as sites, the MPO term by term, and DMRG on water and N₂."],
+    5: ["What to check before trusting it", "Orbital order, extrapolation, and orbital entropies."],
+  };
+  const $ = (id) => document.getElementById(id);
+  const lessons = Array.from(document.querySelectorAll("#lessons article"));
+  const total = lessons.length;
+  $("nLessons").textContent = String(total);
+  $("pos").textContent = `1 / ${total}`;
+  // Progress is stored by lesson title, so adding lessons later keeps the ticks in place.
+  const titles = lessons.map((el) => el.dataset.title);
+  const KEY = "qchem-dmrg-pocket-v1";  // unique per course; bump only if titles are renamed en masse
+  let state = { done: [], last: titles[0] };
+  try {
+    const s = JSON.parse(localStorage.getItem(KEY));
+    if (s && Array.isArray(s.done)) state = s;
+  } catch (e) {}
+  const save = () => { try { localStorage.setItem(KEY, JSON.stringify(state)); } catch (e) {} };
+  const isDone = (i) => state.done.includes(titles[i]);
+
+  const home = $("home"), reader = $("reader"), stage = $("stage");
+  let current = 0;
+
+  function renderHome() {
+    const box = $("units");
+    box.innerHTML = "";
+    Object.keys(units).forEach((u) => {
+      const sec = document.createElement("div");
+      sec.className = "unit";
+      sec.innerHTML = `<h2>Part ${u} · ${units[u][0]}</h2><p class="blurb">${units[u][1]}</p>`;
+      lessons.forEach((el, i) => {
+        if (el.dataset.unit !== u) return;
+        const b = document.createElement("button");
+        b.type = "button";
+        b.className = "row" + (isDone(i) ? " is-done" : "");
+        b.innerHTML = `<span class="n">${i + 1}</span><span class="t">${el.dataset.title}</span><span class="mark" aria-label="${isDone(i) ? "done" : "not done"}"></span>`;
+        b.addEventListener("click", () => open(i));
+        sec.appendChild(b);
+      });
+      box.appendChild(sec);
+    });
+    const n = titles.filter((t) => state.done.includes(t)).length;
+    $("bar").style.width = (100 * n / total) + "%";
+    $("count").textContent = `${n} of ${total} done`;
+    let next = 0;
+    while (next < total && isDone(next)) next++;
+    if (next >= total) next = Math.max(0, titles.indexOf(state.last));
+    const c = $("continue");
+    c.innerHTML = (n === 0 ? "Start with lesson 1" : n === total ? "Review: lesson " + (next + 1) : "Continue: lesson " + (next + 1)) + `<span>${lessons[next].dataset.title}</span>`;
+    c.onclick = () => open(next);
+  }
+
+  function typeset(el) {
+    if (window.MathJax && MathJax.typesetPromise) MathJax.typesetPromise([el]).catch(() => {});
+    else setTimeout(() => typeset(el), 300);
+  }
+
+  function open(i) {
+    current = i;
+    state.last = titles[i]; save();
+    const src = lessons[i];
+    stage.innerHTML = `<div class="lesson${src.hasAttribute("data-review") ? " review" : ""}"><div class="unitname">Part ${src.dataset.unit} · ${units[src.dataset.unit][0]}</div><h2>${src.dataset.title}</h2>${src.innerHTML}</div>`;
+    stage.querySelectorAll(".check button").forEach((b) => {
+      b.addEventListener("click", () => {
+        const a = b.nextElementSibling;
+        a.hidden = !a.hidden;
+        b.textContent = a.hidden ? "Show answer" : "Hide answer";
+      });
+    });
+    $("pos").textContent = `${i + 1} / ${total}`;
+    $("prev").disabled = i === 0;
+    $("prev").style.visibility = i === 0 ? "hidden" : "visible";
+    $("next").textContent = i === total - 1 ? "Finish ✓" : "Got it, next →";
+    home.hidden = true; reader.hidden = false;
+    window.scrollTo(0, 0);
+    renderDiagrams(stage);
+    typeset(stage);
+  }
+
+  function goHome() { reader.hidden = true; home.hidden = false; renderHome(); window.scrollTo(0, 0); }
+
+  $("back").addEventListener("click", goHome);
+  $("prev").addEventListener("click", () => { if (current > 0) open(current - 1); });
+  $("next").addEventListener("click", () => {
+    if (!isDone(current)) { state.done.push(titles[current]); save(); }
+    if (current < total - 1) open(current + 1); else goHome();
+  });
+  $("reset").addEventListener("click", () => { $("resetConfirm").hidden = false; });
+  $("resetNo").addEventListener("click", () => { $("resetConfirm").hidden = true; });
+  $("resetYes").addEventListener("click", () => { state = { done: [], last: titles[0] }; save(); $("resetConfirm").hidden = true; renderHome(); });
+
+  renderHome();
+})();
+</script>
