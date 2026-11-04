@@ -87,6 +87,20 @@ DMRG does the same 36 spins in seconds. The quantum computer only wins once the 
 * A product state has overlap $\gamma^2 \approx 3\times10^{-9}$ with the 64-spin ground state; an MPS with $\chi_0 = 32$ keeps $\gamma^2 \approx 0.34$.
 * The curves cross between $W = 6$ and $W = 10$ (36 to 100 spins), where phase estimation takes minutes to a day, depending on how fast the quantum computer makes Toffolis and how fast the classical computer runs.
 
+## How fast is it?
+
+Fast enough to learn from, not to do research with. `benchmarks/benchmark_tenpy.py` solves the same problems with [TeNPy](https://github.com/tenpy/tenpy), 4 sweeps each, and both codes reach the same energies:
+
+| Problem | $\chi$ | this repo | TeNPy | TeNPy, $S^z$ conserved |
+|---|---|---|---|---|
+| Ising chain, $L = 100$ | 64 | 4.2 s | 5.6 s | |
+| Heisenberg model, $6\times6$ cylinder | 64 | 5.7 s | 3.6 s | 2.8 s |
+| Heisenberg model, $6\times6$ cylinder | 256 | 122 s | 33 s | 9.3 s |
+
+At small $\chi$ every step is tiny, and the short code here is even a little faster. At large $\chi$ it falls behind: 4 times slower than TeNPy at $\chi = 256$, and 13 times once TeNPy conserves $S^z$. The gap grows with $\chi$, because a conserved quantum number splits every tensor into blocks, so the cost is a sum of block sizes cubed instead of $\chi^3$ (notebook 10: $1.2\times10^5$ instead of $1.7\times10^7$).
+
+So use this code to see how DMRG works and to check small cases. Switch to a well-optimized package as soon as you need bond dimensions in the hundreds or more, two dimensions, conserved quantities or SU(2) symmetry: [TeNPy](https://github.com/tenpy/tenpy) or [ITensor](https://itensor.org) for spin and Hubbard models, [block2](https://github.com/block-hczhai/block2-preview) for molecules. Notebooks 5, 6, 9 and 10 show how.
+
 ## Install
 
 ```bash
@@ -96,8 +110,6 @@ pytest
 ```
 
 Each notebook cell runs in seconds. Results that need longer runs appear twice: a small live run you can change, then the full run loaded from a small file in `results/`. `python scripts/make_results.py` remakes those files (about 40 minutes on a 12-core laptop, set by the 8 x 8 cylinder of steps 12 and 14 and the width-4 Hubbard cylinder of step 10).
-
-`benchmarks/benchmark_tenpy.py` solves the same problems with [TeNPy](https://github.com/tenpy/tenpy) as a cross-check (same accuracy).
 
 The package imports as `import dmrg_from_scratch as dmrg`. Entropies are in bits (log base 2) throughout. Index conventions: MPS tensors `A[left, phys, right]`, MPO tensors `W[w_left, w_right, out, in]`, environments `L[ket, mpo, bra]`. Site 0 is the most significant bit. On a cylinder, spins are numbered column by column, $s = xW + y$, open along the cylinder and periodic around it; $\mathbf S = \boldsymbol\sigma/2$, so each Heisenberg bond is $\tfrac14(XX + YY + ZZ)$.
 
