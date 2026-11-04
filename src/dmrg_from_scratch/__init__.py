@@ -56,3 +56,54 @@ __all__ = [
     "to_dense",
     "truncated_svd",
 ]
+
+# Notebooks 07 and 08: excited states, time evolution and temperature.
+from .dynamics import (  # noqa: E402
+    apply_local,
+    dynamical_correlations,
+    gates,
+    half_chain_entropy,
+    infinite_temperature_state,
+    local_expectations,
+    mpo_expectation,
+    purify_mpo,
+    structure_factor,
+    tebd_step,
+    tfim_bond_hamiltonians,
+    thermal_states,
+    transition_elements,
+)
+from .exact import (  # noqa: E402
+    majorana_entropy,
+    tfim_ground_correlations,
+    tfim_open_gap,
+    tfim_quench,
+    tfim_single_particle_energies,
+    tfim_thermal,
+    tfim_zz_dynamics,
+)
+from .excited import dmrg_excited  # noqa: E402
+
+__all__ += [
+    "apply_local",
+    "dmrg_excited",
+    "dynamical_correlations",
+    "gates",
+    "half_chain_entropy",
+    "infinite_temperature_state",
+    "local_expectations",
+    "majorana_entropy",
+    "mpo_expectation",
+    "purify_mpo",
+    "structure_factor",
+    "tebd_step",
+    "tfim_bond_hamiltonians",
+    "tfim_ground_correlations",
+    "tfim_open_gap",
+    "tfim_quench",
+    "tfim_single_particle_energies",
+    "tfim_thermal",
+    "tfim_zz_dynamics",
+    "thermal_states",
+    "transition_elements",
+]

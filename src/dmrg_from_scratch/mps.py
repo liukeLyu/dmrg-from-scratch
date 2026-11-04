@@ -13,6 +13,7 @@ age of matrix product states", https://arxiv.org/abs/1008.3477 (Sec. 4).
 """
 
 import numpy as np
+import scipy.linalg
 
 
 def random_mps(L, d=2, chi=8, seed=None):
@@ -101,7 +102,10 @@ def truncated_svd(M, chi_max, cutoff=1e-12):
     ``discarded`` the weight sum(S^2) that was thrown away. Keeping the largest
     Schmidt values is the best low-rank approximation (Eckart-Young theorem).
     """
-    U, S, Vh = np.linalg.svd(M, full_matrices=False)
+    try:
+        U, S, Vh = np.linalg.svd(M, full_matrices=False)
+    except np.linalg.LinAlgError:  # the fast LAPACK routine occasionally fails; the slower one does not
+        U, S, Vh = scipy.linalg.svd(M, full_matrices=False, lapack_driver="gesvd")
     S = S / np.linalg.norm(S)
     keep = min(chi_max, max(1, int(np.sum(S > cutoff))))
     discarded = float(np.sum(S[keep:] ** 2))
