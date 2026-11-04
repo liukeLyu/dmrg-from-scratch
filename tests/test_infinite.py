@@ -1,7 +1,7 @@
 import numpy as np
 import pytest
 
-from dmrg import correlation_length, idmrg, tfim_bulk_tensor, tfim_infinite_energy_density
+from dmrg_from_scratch import correlation_length, idmrg, tfim_bulk_tensor, tfim_infinite_energy_density
 
 
 def test_exact_energy_density_at_critical_point():

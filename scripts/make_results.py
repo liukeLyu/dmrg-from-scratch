@@ -12,7 +12,7 @@ import sys
 from concurrent.futures import ProcessPoolExecutor
 from pathlib import Path
 
-import dmrg
+import dmrg_from_scratch as dmrg
 
 RESULTS = Path(__file__).resolve().parent.parent / "results"
 

@@ -1,7 +1,7 @@
 import numpy as np
 import pytest
 
-from dmrg import expectation, mpo_to_dense, random_mps, tfim_mpo, tfim_open_energy, to_dense
+from dmrg_from_scratch import expectation, mpo_to_dense, random_mps, tfim_mpo, tfim_open_energy, to_dense
 
 X = np.array([[0, 1], [1, 0]])
 Z = np.diag([1, -1])

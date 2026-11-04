@@ -1,7 +1,7 @@
 import numpy as np
 import pytest
 
-from dmrg import (
+from dmrg_from_scratch import (
     compress,
     entropy,
     from_dense,

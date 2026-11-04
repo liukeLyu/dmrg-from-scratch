@@ -13,12 +13,12 @@ authors = [{ name = "Liuke Lyu" }]
 dependencies = ["numpy>=1.24", "scipy>=1.10"]
 
 [project.optional-dependencies]
-examples = ["jupyter", "matplotlib"]
+examples = ["jupyter", "matplotlib", "physics-tenpy>=1.0", "block2", "pyscf"]
 benchmark = ["physics-tenpy>=1.0"]
 dev = ["pytest>=7", "ruff>=0.5", "matplotlib", "nbclient", "ipykernel"]
 
 [tool.hatch.build.targets.wheel]
-packages = ["src/dmrg"]
+packages = ["src/dmrg_from_scratch"]
 
 [tool.pytest.ini_options]
 markers = ["slow: tens of seconds each (run with -m slow)"]

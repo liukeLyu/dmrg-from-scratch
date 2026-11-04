@@ -1,8 +1,8 @@
 import numpy as np
 import pytest
 
-from dmrg import central_charge_fit, dmrg, expectation, schmidt_values, tfim_mpo, tfim_open_energy
-from dmrg.finite import apply_heff
+from dmrg_from_scratch import central_charge_fit, dmrg, expectation, schmidt_values, tfim_mpo, tfim_open_energy
+from dmrg_from_scratch.finite import apply_heff
 
 
 def test_heff_is_symmetric():

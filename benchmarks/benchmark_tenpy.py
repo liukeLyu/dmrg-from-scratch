@@ -16,7 +16,7 @@ from tenpy.algorithms import dmrg as tenpy_dmrg
 from tenpy.models.tf_ising import TFIChain
 from tenpy.networks.mps import MPS
 
-import dmrg
+import dmrg_from_scratch as dmrg
 
 logging.disable(logging.CRITICAL)
 warnings.filterwarnings("ignore")
