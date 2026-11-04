@@ -193,6 +193,118 @@ def hubbard_infinite_run(U, phi_ext, chis, W=4):
     return {"U": U, "phi_ext": phi_ext, "W": W, "runs": rows}
 
 
+QMC_RDMS = (
+    "https://raw.githubusercontent.com/songmengh/Ising_RDMs/main/2d/4sites"  # Song et al., ref. 41 of arXiv:2412.12533
+)
+
+
+def microscopy_idmrg(W, h, chis):
+    """2 x 2 plaquette RDM of the 2D TFIM on an infinite cylinder of width W (TeNPy iDMRG, parity conserved),
+    at each chi in turn, rotated to the -ZZ - hX basis of the QMC papers, with its negativities and GMN."""
+    import time
+
+    from tenpy.algorithms import dmrg as tdmrg
+    from tenpy.models.tf_ising import TFIModel
+    from tenpy.networks.mps import MPS
+
+    from dmrg_from_scratch import microscopy as mic
+
+    model = TFIModel(
+        {
+            "lattice": "Square",
+            "Lx": 2,
+            "Ly": W,
+            "bc_x": "periodic",
+            "bc_y": "periodic",
+            "bc_MPS": "infinite",
+            "J": 1.0,
+            "g": h,
+            "conserve": "parity",
+        }
+    )
+    psi = MPS.from_product_state(model.lat.mps_sites(), ["up"] * (2 * W), bc="infinite")
+    rows, t0 = [], time.perf_counter()
+    for chi in chis:
+        opts = {
+            "trunc_params": {"chi_max": chi, "svd_min": 1e-12},
+            "mixer": True,
+            "max_E_err": 1e-9,
+            "max_S_err": 1e-5,
+            "max_sweeps": 20,
+            "max_trunc_err": 1.0,
+        }
+        E = tdmrg.run(psi, model, opts)["E"]
+        left, tensors = mic.tenpy_segment(psi, 0, W + 1)
+        rho = mic.to_zz_basis(mic.segment_rdm(tensors, [0, 1, W, W + 1], left)).real
+        rows.append(
+            {
+                "chi": chi,
+                "energy": float(E),
+                "chi_used": int(max(psi.chi)),
+                "rho": rho,
+                **mic.plaquette_measures(rho),
+                "seconds": time.perf_counter() - t0,
+            }
+        )
+    rows[-1]["rho_change"] = float(np.abs(rows[-1]["rho"] - rows[-2]["rho"]).max())  # last step in chi
+    for r in rows[:-1]:
+        del r["rho"]
+    return {"W": W, "h": h, "runs": rows}
+
+
+def microscopy_qmc(L, h, n_samples=20, seed=0):
+    """Negativities and GMN of the published QMC plaquette RDM (L x L torus, beta = L), with error bars from
+    resampling every matrix element within its quoted error."""
+    import urllib.request
+
+    from dmrg_from_scratch import microscopy as mic
+
+    def fetch(name):
+        return np.loadtxt(urllib.request.urlopen(f"{QMC_RDMS}/L{L}/h{h:g}/{name}"))
+
+    rho, err = fetch("rdm.txt"), fetch("rdm_error.txt")
+    rng = np.random.default_rng(seed)
+    samples = []
+    for _ in range(n_samples):
+        noise = np.triu(rng.normal(size=rho.shape) * err)
+        try:
+            samples.append(mic.plaquette_measures(rho + noise + np.triu(noise, 1).T))
+        except RuntimeError:  # both SDP solvers failed on this sample: leave it out
+            continue
+    best = mic.plaquette_measures(rho)
+    return {
+        "L": L,
+        "h": h,
+        "rho": rho,
+        "rho_error_max": float(err.max()),
+        **best,
+        "n_samples": len(samples),
+        **{f"{k}_error": float(np.std([s[k] for s in samples])) for k in best},
+    }
+
+
+MICRO_H = [1.0, 2.0, 2.5, 2.8, 3.0, 3.044, 3.2, 3.5, 4.0, 5.0, 6.0, 7.6, 10.7]
+MICRO_KEEP = (3.044, 5.0, 10.7)  # fields whose full matrices the notebook uses (width 6 and QMC L = 24)
+
+
+def microscopy_assemble(out):
+    """Compare every matrix with the QMC one at L = 24, then keep only the matrices the notebook needs."""
+    qmc24 = {o["h"]: o["rho"] for o in out if o.get("L") == 24}
+    for o in out:
+        last = o["runs"][-1] if "W" in o else o
+        if o.get("L") != 24:
+            last["diff_qmc24"] = float(np.abs(last["rho"] - qmc24[o["h"]]).max())
+        keep = o["h"] in MICRO_KEEP and (o.get("W") == 6 or o.get("L") == 24)
+        last["rho"] = np.round(last["rho"], 10).tolist() if keep else None
+        if last["rho"] is None:
+            del last["rho"]
+    return {
+        "model": "H = -sum ZZ - h sum X, square lattice; plaquette (x,y) (x,y+1) (x+1,y) (x+1,y+1)",
+        "dmrg": [o for o in out if "W" in o],
+        "qmc": [o for o in out if "L" in o],
+    }
+
+
 # Each result: (list of tasks, function assembling the task outputs into a JSON-ready dict).
 RESULTS_SPEC = {
     # notebook 00: 60 spins at three fields, chi = 24
@@ -247,6 +359,13 @@ RESULTS_SPEC = {
     "hubbard_width4": (
         [(hubbard_infinite_run, U, phi, [128, 256, 512, 768]) for U in (4.0, 8.0) for phi in (0.0, 0.5)],
         lambda out: {"model": "Hubbard, t = 1, half filling, infinite cylinder of width 4", "runs": out},
+    ),
+    # notebook 17: plaquette RDMs of the 2D TFIM from iDMRG (widths 4, 6, 8), next to the published QMC RDMs
+    "microscopy": (
+        [(microscopy_idmrg, W, h, [32, 64, 128]) for W in (4, 6) for h in MICRO_H]
+        + [(microscopy_idmrg, 8, h, [64, 128]) for h in (2.0, 2.8, 3.044, 3.5, 5.0)]
+        + [(microscopy_qmc, L, h) for L in (16, 24) for h in MICRO_H],
+        microscopy_assemble,
     ),
 }
 
