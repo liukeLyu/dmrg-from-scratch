@@ -33,9 +33,9 @@ def grow_left(L, A, W):
     L_new[a, v, b] = sum L[x, w, y] A[x, s, a] W[w, v, t, s] conj(A[y, t, b])
     One tensor at a time keeps each step cheap (cost chi^3).
     """
-    T = np.einsum("xwy,xsa->wysa", L, A)
-    T = np.einsum("wysa,wvts->yvta", T, W)
-    return np.einsum("yvta,ytb->avb", T, A.conj())
+    T = np.einsum("xwy,xsa->wysa", L, A, optimize=True)
+    T = np.einsum("wysa,wvts->yvta", T, W, optimize=True)
+    return np.einsum("yvta,ytb->avb", T, A.conj(), optimize=True)
 
 
 def grow_right(R, B, W):
@@ -43,9 +43,9 @@ def grow_right(R, B, W):
 
     R_new[x, w, y] = sum B[x, s, a] W[w, v, t, s] conj(B[y, t, b]) R[a, v, b]
     """
-    T = np.einsum("xsa,avb->xsvb", B, R)
-    T = np.einsum("xsvb,wvts->xwtb", T, W)
-    return np.einsum("xwtb,ytb->xwy", T, B.conj())
+    T = np.einsum("xsa,avb->xsvb", B, R, optimize=True)
+    T = np.einsum("xsvb,wvts->xwtb", T, W, optimize=True)
+    return np.einsum("xwtb,ytb->xwy", T, B.conj(), optimize=True)
 
 
 def apply_heff(L, W1, W2, R, theta):
@@ -53,11 +53,13 @@ def apply_heff(L, W1, W2, R, theta):
 
     out[y, t1, t2, b] = sum L[x, w, y] W1[w, u, t1, s1] W2[u, v, t2, s2] R[a, v, b] theta[x, s1, s2, a]
     Done in four steps so each einsum is easy to read (and the cost stays chi^3).
+    optimize=True lets NumPy hand each step to BLAS as a matrix product, which is
+    10-20 times faster at chi ~ 100 than einsum's own loops.
     """
-    T = np.einsum("xwy,xpqa->wypqa", L, theta)  # attach the left environment
-    T = np.einsum("wypqa,wutp->uytqa", T, W1)  # first site's MPO tensor
-    T = np.einsum("uytqa,uvrq->vytra", T, W2)  # second site's MPO tensor
-    return np.einsum("vytra,avb->ytrb", T, R)  # attach the right environment
+    T = np.einsum("xwy,xpqa->wypqa", L, theta, optimize=True)  # attach the left environment
+    T = np.einsum("wypqa,wutp->uytqa", T, W1, optimize=True)  # first site's MPO tensor
+    T = np.einsum("uytqa,uvrq->vytra", T, W2, optimize=True)  # second site's MPO tensor
+    return np.einsum("vytra,avb->ytrb", T, R, optimize=True)  # attach the right environment
 
 
 def solve_two_site(L, W1, W2, R, theta0, tol=1e-10, stats=None):
@@ -121,7 +123,7 @@ def dmrg(mpo, chi_max, n_sweeps=5, cutoff=1e-12, seed=0, verbose=False, mps=None
         max_disc = 0.0
         # Left to right: after each step site i is a left isometry A.
         for i in range(L - 1):
-            theta = np.einsum("asb,btc->astc", mps[i], mps[i + 1])
+            theta = np.einsum("asb,btc->astc", mps[i], mps[i + 1], optimize=True)
             E, theta = solve_two_site(Lenv[i], mpo[i], mpo[i + 1], Renv[i + 2], theta, stats=stats)
             chi_l, d1, d2, chi_r = theta.shape
             U, S, Vh, disc = truncated_svd(theta.reshape(chi_l * d1, d2 * chi_r), chi_max, cutoff)
@@ -132,7 +134,7 @@ def dmrg(mpo, chi_max, n_sweeps=5, cutoff=1e-12, seed=0, verbose=False, mps=None
         energies.append(E)
         # Right to left: after each step site i+1 is a right isometry B.
         for i in range(L - 2, -1, -1):
-            theta = np.einsum("asb,btc->astc", mps[i], mps[i + 1])
+            theta = np.einsum("asb,btc->astc", mps[i], mps[i + 1], optimize=True)
             E, theta = solve_two_site(Lenv[i], mpo[i], mpo[i + 1], Renv[i + 2], theta, stats=stats)
             chi_l, d1, d2, chi_r = theta.shape
             U, S, Vh, disc = truncated_svd(theta.reshape(chi_l * d1, d2 * chi_r), chi_max, cutoff)
