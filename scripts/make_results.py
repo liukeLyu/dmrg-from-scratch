@@ -105,6 +105,94 @@ def chis_up_to(top):
     return [c for c in (1, 2, 4, 8, 16, 32, 64, 128, 256) if c <= top]
 
 
+def tenpy_ladder(psi, model, chis, sweeps, measure):
+    """TeNPy two-site DMRG at each chi in turn (each from the last), with the largest truncation error of the
+    last sweep and whatever ``measure(psi)`` returns."""
+    import time
+
+    from tenpy.algorithms import dmrg as tdmrg
+
+    rows, t0 = [], time.perf_counter()
+    for chi in chis:
+        opts = {"trunc_params": {"chi_max": chi, "svd_min": 1e-12}, "mixer": chi == chis[0], "max_trunc_err": 1.0}
+        opts.update(sweeps)
+        eng = tdmrg.TwoSiteDMRGEngine(psi, model, opts)
+        E, _ = eng.run()
+        trunc = float(eng.sweep_stats["max_trunc_err"][-1])
+        rows.append(
+            {"chi": chi, "energy": float(E), "trunc_err": trunc, **measure(psi), "seconds": time.perf_counter() - t0}
+        )
+    return rows
+
+
+def neel_run(W, Lx, chis):
+    """Square-lattice Heisenberg model on an Lx x W cylinder, edges pinned by a staggered field 1/2 (TeNPy, S^z
+    conserved): energy and the magnetization profile |<S^z>| column by column."""
+    import warnings
+
+    from tenpy.models.spins import SpinModel
+    from tenpy.networks.mps import MPS
+
+    warnings.filterwarnings("ignore")
+    hz = np.zeros((Lx, W))
+    for x in (0, Lx - 1):
+        hz[x] = [-0.5 * (-1) ** (x + y) for y in range(W)]  # SpinModel adds -hz S^z: the field of neel_pinning
+    model = SpinModel(
+        {
+            "lattice": "Square",
+            "Lx": Lx,
+            "Ly": W,
+            "bc_x": "open",
+            "bc_y": "periodic",
+            "bc_MPS": "finite",
+            "S": 0.5,
+            "Jx": 1.0,
+            "Jy": 1.0,
+            "Jz": 1.0,
+            "hz": hz,
+            "conserve": "Sz",
+        }
+    )
+    init = ["down" if (k // W + k % W) % 2 == 0 else "up" for k in range(W * Lx)]
+    psi = MPS.from_product_state(model.lat.mps_sites(), init, bc="finite")
+
+    def measure(psi):
+        return {"M_x": list(np.abs(psi.expectation_value("Sz")).reshape(Lx, W).mean(axis=1))}
+
+    return {"W": W, "Lx": Lx, "runs": tenpy_ladder(psi, model, chis, {"max_sweeps": 2, "min_sweeps": 2}, measure)}
+
+
+def hubbard_infinite_run(U, phi_ext, chis, W=4):
+    """iDMRG for the half-filled Hubbard model on an infinite cylinder of width W (TeNPy, N and S^z conserved).
+    ``phi_ext = 0`` is periodic around the cylinder, ``1/2`` antiperiodic. Energies are per site."""
+    import warnings
+
+    from tenpy.models.hubbard import FermiHubbardModel
+    from tenpy.networks.mps import MPS
+
+    warnings.filterwarnings("ignore")
+    model = FermiHubbardModel(
+        {
+            "lattice": "Square",
+            "Lx": 2,
+            "Ly": W,
+            "bc_x": "periodic",
+            "bc_y": "periodic",
+            "bc_MPS": "infinite",
+            "U": U,
+            "t": 1.0,
+            "phi_ext": phi_ext,
+        }
+    )
+    init = ["up" if (k // W + k % W) % 2 == 0 else "down" for k in range(2 * W)]
+    psi = MPS.from_product_state(model.lat.mps_sites(), init, bc="infinite")
+    sweeps = {"max_sweeps": 30, "min_sweeps": 6, "max_E_err": 1e-9, "max_S_err": 1e-5}
+    rows = tenpy_ladder(
+        psi, model, chis, sweeps, lambda psi: {"S_bits": float(max(psi.entanglement_entropy())) / np.log(2)}
+    )
+    return {"U": U, "phi_ext": phi_ext, "W": W, "runs": rows}
+
+
 # Each result: (list of tasks, function assembling the task outputs into a JSON-ready dict).
 RESULTS_SPEC = {
     # notebook 00: 60 spins at three fields, chi = 24
@@ -147,6 +235,18 @@ RESULTS_SPEC = {
             (ladder_run, 8, chis_up_to(256), 3),
         ],
         lambda out: {"model": "J1-J2 Heisenberg, J2/J1 = 0.5, nearly square cylinders", "ladders": out},
+    ),
+    # notebook 09: pinned Neel order, widths 4, 6, 8 at aspect ratios Lx/W = 1, 1.5, 2 (TeNPy)
+    "neel_pinned": (
+        [(neel_run, 4, Lx, [64, 128, 256]) for Lx in (4, 6, 8)]
+        + [(neel_run, 6, Lx, [64, 128, 256, 512]) for Lx in (6, 9, 12)]
+        + [(neel_run, 8, Lx, [128, 256, 512, 768]) for Lx in (8, 12, 16)],
+        lambda out: {"model": "square-lattice Heisenberg, staggered edge field 1/2", "clusters": out},
+    ),
+    # notebook 10: half-filled Hubbard model on the infinite width-4 cylinder, periodic and antiperiodic (TeNPy)
+    "hubbard_width4": (
+        [(hubbard_infinite_run, U, phi, [128, 256, 512, 768]) for U in (4.0, 8.0) for phi in (0.0, 0.5)],
+        lambda out: {"model": "Hubbard, t = 1, half filling, infinite cylinder of width 4", "runs": out},
     ),
 }
 

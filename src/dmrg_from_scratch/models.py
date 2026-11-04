@@ -102,3 +102,43 @@ def tfim_cylinder(W: int, Lx: int | None = None, h: float = 3.0, J: float = 1.0)
 
 def n_bonds(H: PauliSum) -> int:
     return int(np.sum([len(ops) == 2 for _, ops in H.terms]))
+
+
+def neel_pinning(H: PauliSum, h: float = 0.5) -> PauliSum:
+    """``H`` plus a staggered field ``h (-1)^(x+y) S^z`` on the first and last column of its cylinder.
+
+    The field stands in for a frozen Néel neighbour beyond each open end: an edge spin coupled
+    with ``J = 1`` to a spin fixed at ``S^z = -/+ 1/2`` feels ``h = 1/2`` [White and Chernyshev,
+    arXiv:0705.2746]. It picks one of the Néel states, so the order parameter can be read off as
+    a plain ``<S^z>`` in the middle instead of from a correlation function.
+    """
+    Lx, W = H.shape
+    terms = list(H.terms)
+    for x in (0, Lx - 1):
+        for y in range(W):
+            terms.append((0.5 * h * (-1) ** (x + y), ((x * W + y, "Z"),)))  # h S^z = (h/2) Z
+    return PauliSum(H.n, terms, name=f"{H.name}, edge pinning {h:g}", shape=H.shape)
+
+
+def hubbard_cylinder(W: int, Lx: int, U: float, t: float = 1.0) -> PauliSum:
+    """The Hubbard model on an ``Lx x W`` cylinder, as qubits by Jordan-Wigner, for exact diagonalization.
+
+        H = -t sum_<ij>,s (c+_is c_js + h.c.) + U sum_i (n_i,up - 1/2)(n_i,dn - 1/2)
+
+    Site ``s`` holds two qubits, ``2s`` (spin up) and ``2s + 1`` (spin down), and a qubit in
+    ``|1>`` (``Z = -1``) is occupied, so ``n = (1 - Z)/2``. Jordan-Wigner turns a hop between qubits
+    ``p < q`` into ``(X_p Z...Z X_q + Y_p Z...Z Y_q) / 2``, with a ``Z`` on every qubit in between:
+    the fermion sign. The interaction, written particle-hole symmetrically, is ``(U/4) Z_up Z_dn``.
+    That form puts the ground state at half filling; with ``U n_up n_dn`` instead (TeNPy's
+    convention) the half-filled energy is higher by ``U/4`` per site.
+    """
+    terms = []
+    for i, j in cylinder_bonds(Lx, W):
+        for spin in (0, 1):
+            p, q = 2 * i + spin, 2 * j + spin
+            string = tuple((r, "Z") for r in range(p + 1, q))
+            for P in "XY":
+                terms.append((-t / 2, ((p, P), *string, (q, P))))
+    for s in range(Lx * W):
+        terms.append((U / 4, ((2 * s, "Z"), (2 * s + 1, "Z"))))
+    return PauliSum(2 * Lx * W, terms, name=f"Hubbard, U = {U:g}, t = {t:g}", shape=(Lx, W))
