@@ -4,8 +4,8 @@
     python scripts/make_results.py critical_entropy
 
 Each notebook runs a seconds-long live version of a result, then loads the full one from results/.
-DMRG is deterministic (fixed seed), so the files are reproducible. About two hours in total on 4 cores,
-set by the 8 x 8 cylinder of ``dmrg_ladders``; everything else takes about 3 minutes.
+DMRG is deterministic (fixed seed), so the files are reproducible. About 40 minutes in total on a 12-core
+laptop, set by the 8 x 8 cylinder of ``dmrg_ladders`` and by ``hubbard_width4`` (about 30 minutes each).
 """
 
 import json
