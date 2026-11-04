@@ -19,6 +19,8 @@ Index conventions (see mps.py and mpo.py):
     two-site tensor  theta[left, s1, s2, right]
 """
 
+import time
+
 import numpy as np
 from scipy.sparse.linalg import LinearOperator, eigsh
 
@@ -58,12 +60,21 @@ def apply_heff(L, W1, W2, R, theta):
     return np.einsum("vytra,avb->ytrb", T, R)  # attach the right environment
 
 
-def solve_two_site(L, W1, W2, R, theta0, tol=1e-10):
-    """Lowest eigenpair of H_eff, starting Lanczos from theta0."""
+def solve_two_site(L, W1, W2, R, theta0, tol=1e-10, stats=None):
+    """Lowest eigenpair of H_eff, starting Lanczos from theta0.
+
+    If ``stats`` is a dict, ``stats["flops"]`` grows by the work of each H_eff application:
+    its two big contractions cost 2 w d^2 chi_l chi_r (chi_l + chi_r) flops (w = MPO bond dimension).
+    """
     shape = theta0.shape
     n = theta0.size
+    chi_l, d1, d2, chi_r = shape
+    w = max(L.shape[1], R.shape[1])
+    per_call = 2.0 * w * d1 * d2 * chi_l * chi_r * (chi_l + chi_r)
 
     def matvec(v):
+        if stats is not None:
+            stats["flops"] += per_call
         return apply_heff(L, W1, W2, R, v.reshape(shape)).ravel()
 
     H = LinearOperator((n, n), matvec=matvec, dtype=float)
@@ -75,17 +86,26 @@ def solve_two_site(L, W1, W2, R, theta0, tol=1e-10):
     return vals[0], vecs[:, 0].reshape(shape)
 
 
-def dmrg(mpo, chi_max, n_sweeps=5, cutoff=1e-12, seed=0, verbose=False):
+def dmrg(mpo, chi_max, n_sweeps=5, cutoff=1e-12, seed=0, verbose=False, mps=None):
     """Ground state of an open-chain MPO by two-site DMRG.
+
+    ``mps`` is an optional starting state, e.g. the result at a smaller ``chi_max``
+    (see :func:`dmrg_ladder`); by default DMRG starts from a random MPS.
 
     Returns a dict with the final ``energy``, the right-canonical ``mps``,
     the ``energies`` after each half sweep, the ``entropies`` S(l) of the
     first l sites (l = 1..L-1) from the last sweep, and the largest
-    ``discarded`` weight of that sweep.
+    ``discarded`` weight of that sweep. For pricing a run it also reports
+    the largest bond dimension ``chi``, the ``flops`` spent in H_eff
+    (and ``flops_per_sweep``) and the wall time ``seconds``.
     """
+    t0 = time.perf_counter()
+    stats = {"flops": 0.0}
     L = len(mpo)
     d = mpo[0].shape[2]
-    mps = right_canonicalize(random_mps(L, d, chi=min(chi_max, 4), seed=seed))
+    if mps is None:
+        mps = random_mps(L, d, chi=min(chi_max, 4), seed=seed)
+    mps = right_canonicalize(mps)  # a copy: the caller's MPS is left alone
 
     # Lenv[i] contains sites 0..i-1, Renv[i] contains sites i..L-1.
     Lenv = [None] * (L + 1)
@@ -102,7 +122,7 @@ def dmrg(mpo, chi_max, n_sweeps=5, cutoff=1e-12, seed=0, verbose=False):
         # Left to right: after each step site i is a left isometry A.
         for i in range(L - 1):
             theta = np.einsum("asb,btc->astc", mps[i], mps[i + 1])
-            E, theta = solve_two_site(Lenv[i], mpo[i], mpo[i + 1], Renv[i + 2], theta)
+            E, theta = solve_two_site(Lenv[i], mpo[i], mpo[i + 1], Renv[i + 2], theta, stats=stats)
             chi_l, d1, d2, chi_r = theta.shape
             U, S, Vh, disc = truncated_svd(theta.reshape(chi_l * d1, d2 * chi_r), chi_max, cutoff)
             max_disc = max(max_disc, disc)
@@ -113,7 +133,7 @@ def dmrg(mpo, chi_max, n_sweeps=5, cutoff=1e-12, seed=0, verbose=False):
         # Right to left: after each step site i+1 is a right isometry B.
         for i in range(L - 2, -1, -1):
             theta = np.einsum("asb,btc->astc", mps[i], mps[i + 1])
-            E, theta = solve_two_site(Lenv[i], mpo[i], mpo[i + 1], Renv[i + 2], theta)
+            E, theta = solve_two_site(Lenv[i], mpo[i], mpo[i + 1], Renv[i + 2], theta, stats=stats)
             chi_l, d1, d2, chi_r = theta.shape
             U, S, Vh, disc = truncated_svd(theta.reshape(chi_l * d1, d2 * chi_r), chi_max, cutoff)
             max_disc = max(max_disc, disc)
@@ -132,4 +152,22 @@ def dmrg(mpo, chi_max, n_sweeps=5, cutoff=1e-12, seed=0, verbose=False):
         "entropies": np.array([entropy(S) for S in S_bonds]),
         "schmidt_values": S_bonds,
         "discarded": max_disc,
+        "chi": max(A.shape[2] for A in mps),
+        "flops": stats["flops"],
+        "flops_per_sweep": stats["flops"] / n_sweeps,
+        "seconds": time.perf_counter() - t0,
     }
+
+
+def dmrg_ladder(mpo, chis, n_sweeps=4, seed=0):
+    """DMRG at each bond dimension in ``chis`` (increasing), each started from the previous result.
+
+    A ladder of growing ``chi`` costs little more than its last rung, and the energies along it
+    are what one extrapolates to zero discarded weight.
+    """
+    out, mps = [], None
+    for chi in chis:
+        r = dmrg(mpo, chi, n_sweeps=n_sweeps, seed=seed, mps=mps)
+        mps = r["mps"]
+        out.append(r)
+    return out

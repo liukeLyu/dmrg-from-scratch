@@ -5,7 +5,7 @@ build-backend = "hatchling.build"
 [project]
 name = "dmrg-from-scratch"
 version = "0.1.0.dev0"
-description = "DMRG and iDMRG for the transverse-field Ising chain, written from scratch with NumPy and SciPy for learning"
+description = "DMRG from scratch on the transverse-field Ising chain, then in practice: packages, molecules, two dimensions, dynamics, and the price against a quantum computer"
 readme = "README.md"
 requires-python = ">=3.10"
 license = "MIT"
@@ -13,9 +13,10 @@ authors = [{ name = "Liuke Lyu" }]
 dependencies = ["numpy>=1.24", "scipy>=1.10"]
 
 [project.optional-dependencies]
-examples = ["jupyter", "matplotlib", "physics-tenpy>=1.0", "block2", "pyscf"]
+examples = ["jupyter", "matplotlib", "physics-tenpy>=1.0", "block2", "pyscf", "pennylane>=0.45"]
+qpe = ["pennylane>=0.45"]
 benchmark = ["physics-tenpy>=1.0"]
-dev = ["pytest>=7", "ruff>=0.5", "matplotlib", "nbclient", "ipykernel"]
+dev = ["pytest>=7", "ruff>=0.5", "matplotlib", "nbclient", "ipykernel", "pennylane>=0.45"]
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/dmrg_from_scratch"]

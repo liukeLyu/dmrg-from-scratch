@@ -25,6 +25,8 @@ Multiplying W's along the chain and taking the (0, 2) entry sums every path
 
 import numpy as np
 
+from .models import PauliSum
+
 I2 = np.eye(2)
 X = np.array([[0.0, 1.0], [1.0, 0.0]])
 Z = np.array([[1.0, 0.0], [0.0, -1.0]])
@@ -47,6 +49,84 @@ def tfim_mpo(L, h, J=1.0):
     mpo = [W.copy() for _ in range(L)]
     mpo[0] = W[0:1, :, :, :]  # left boundary: start in state 0
     mpo[-1] = W[:, 2:3, :, :]  # right boundary: end in state 2
+    return mpo
+
+
+# Any sum of one- and two-site Pauli terms, for the cylinders of notebooks 09 and 11-14.
+#
+# Any sum of one- and two-site Pauli terms as a matrix product operator.
+#
+# An MPO tensor ``W[w_left, w_right, out, in]`` is read as a finite-state machine
+# (Schollwöck https://arxiv.org/abs/1008.3477, Sec. 6.1). Each MPO bond has the states
+#
+#     "start"     nothing placed yet
+#     "done"      a term is complete; only identities follow
+#     (P, i)      the operator P was placed on site i; a later site j closes it with c_ij Q_j
+#
+# Walking from left to right, every path start -> ... -> done spells one term of H. A channel
+# (P, i) is open across a bond only if some term still has to close it on the right, so the MPO
+# bond dimension is 2 plus the number of interactions that cross that bond. On a cylinder of
+# width W about 3W Heisenberg bonds cross every cut, which is why the MPO, and much more the
+# MPS, grows with W.
+#
+# All tensors are real: Y is stored as iY = [[0, 1], [-1, 0]], and each pair of Y's puts a
+# factor (-i)^2 = -1 into the coefficient.
+
+PAULI = {
+    "I": np.eye(2),
+    "X": np.array([[0.0, 1.0], [1.0, 0.0]]),
+    "Y": np.array([[0.0, 1.0], [-1.0, 0.0]]),  # i * Y, real
+    "Z": np.array([[1.0, 0.0], [0.0, -1.0]]),
+}
+
+
+def build_mpo(H: PauliSum) -> list[np.ndarray]:
+    """List of ``H.n`` MPO tensors; the first has one row (start), the last one column (done)."""
+    n = H.n
+    onsite = [np.zeros((2, 2)) for _ in range(n)]
+    pairs = []  # (i, P, j, Q, c) with i < j
+    for c, ops in H.terms:
+        n_y = sum(p == "Y" for _, p in ops)
+        c = c * (-1) ** (n_y // 2)
+        if len(ops) == 1:
+            ((i, p),) = ops
+            onsite[i] += c * PAULI[p]
+        elif len(ops) == 2:
+            (i, p), (j, q) = sorted(ops)
+            pairs.append((i, p, j, q, c))
+        else:
+            raise ValueError("only one- and two-site terms")
+
+    # channels[b] = open channels on the bond between sites b and b + 1
+    channels = []
+    for b in range(n - 1):
+        open_ = sorted({(p, i) for i, p, j, _, _ in pairs if i <= b < j}, key=lambda t: (t[1], t[0]))
+        channels.append(["start", "done", *open_])
+    left = [["start"]] + channels
+    right = channels + [["done"]]
+
+    mpo = []
+    for s in range(n):
+        li = {k: a for a, k in enumerate(left[s])}
+        ri = {k: a for a, k in enumerate(right[s])}
+        Wt = np.zeros((len(li), len(ri), 2, 2))
+        if "start" in li and "start" in ri:
+            Wt[li["start"], ri["start"]] = PAULI["I"]
+        if "done" in li and "done" in ri:
+            Wt[li["done"], ri["done"]] = PAULI["I"]
+        if "start" in li and "done" in ri:
+            Wt[li["start"], ri["done"]] = onsite[s]
+        for key in ri:
+            if isinstance(key, tuple):
+                p, i = key
+                if i == s and "start" in li:
+                    Wt[li["start"], ri[key]] = PAULI[p]  # open a channel
+                elif key in li:
+                    Wt[li[key], ri[key]] = PAULI["I"]  # carry it along
+        for i, p, j, q, c in pairs:
+            if j == s:
+                Wt[li[(p, i)], ri["done"]] += c * PAULI[q]  # close it
+        mpo.append(Wt)
     return mpo
 
 

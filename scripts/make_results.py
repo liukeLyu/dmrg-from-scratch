@@ -4,13 +4,16 @@
     python scripts/make_results.py critical_entropy
 
 Each notebook runs a seconds-long live version of a result, then loads the full one from results/.
-DMRG is deterministic (fixed seed), so the files are reproducible. About 3 minutes in total on 4 cores.
+DMRG is deterministic (fixed seed), so the files are reproducible. About two hours in total on 4 cores,
+set by the 8 x 8 cylinder of ``dmrg_ladders``; everything else takes about 3 minutes.
 """
 
 import json
 import sys
 from concurrent.futures import ProcessPoolExecutor
 from pathlib import Path
+
+import numpy as np
 
 import dmrg_from_scratch as dmrg
 
@@ -32,6 +35,29 @@ def infinite_run(h, chi, n_steps):
     }
 
 
+def ladder_run(W, chis, n_sweeps, J2=0.5):
+    """DMRG at growing bond dimension on the W-wide J1-J2 cylinder, with overlaps against the best state."""
+    H = dmrg.j1j2_cylinder(W, J2=J2)
+    runs = dmrg.dmrg_ladder(dmrg.build_mpo(H), chis, n_sweeps=n_sweeps)
+    best = runs[-1]["mps"]
+    out = {"W": W, "n": H.n, "one_norm": H.one_norm, "runs": []}
+    psi0 = None
+    if H.n <= 20:
+        out["exact_energy"], psi0 = dmrg.ground_state(H)
+    for r in runs:
+        row = {k: r[k] for k in ("chi", "energy", "discarded", "flops_per_sweep", "seconds")}
+        row["entropy"] = r["entropies"][H.n // 2 - 1]  # the cut through the middle of the cylinder
+        row["overlap_with_best"] = abs(float(dmrg.overlap(r["mps"], best)))
+        if psi0 is not None:
+            row["overlap_with_exact"] = float(abs(dmrg.to_dense(r["mps"]) @ psi0))
+        out["runs"].append(row)
+    return out
+
+
+def chis_up_to(top):
+    return [c for c in (1, 2, 4, 8, 16, 32, 64, 128, 256) if c <= top]
+
+
 # Each result: (list of tasks, function assembling the task outputs into a JSON-ready dict).
 RESULTS_SPEC = {
     # notebook 00: 60 spins at three fields, chi = 24
@@ -48,6 +74,17 @@ RESULTS_SPEC = {
     "finite_entanglement_scaling": (
         [(infinite_run, 1.0, chi, 1000) for chi in [6, 8, 10, 12, 16]],
         lambda out: {"h": 1.0, "n_steps": 1000, "runs": out},
+    ),
+    # notebooks 12 and 14: DMRG ladders on W x W cylinders, J2/J1 = 0.5
+    "dmrg_ladders": (
+        [
+            (ladder_run, 3, chis_up_to(64), 6),
+            (ladder_run, 4, chis_up_to(256), 5),
+            (ladder_run, 5, chis_up_to(256), 4),
+            (ladder_run, 6, chis_up_to(256), 3),
+            (ladder_run, 8, chis_up_to(256), 3),
+        ],
+        lambda out: {"model": "J1-J2 Heisenberg, J2/J1 = 0.5, nearly square cylinders", "ladders": out},
     ),
 }
 
@@ -70,4 +107,5 @@ def main(names):
 
 
 if __name__ == "__main__":
+    np.seterr(all="ignore")
     main(sys.argv[1:])
