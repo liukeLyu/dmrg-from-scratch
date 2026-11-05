@@ -3,11 +3,17 @@
 Entanglement microscopy (Wang et al., https://arxiv.org/abs/2402.14916) looks at the reduced
 density matrix (RDM) of a small region A, a few sites, and asks whether those sites are
 entangled with each other: negativity for two parts, genuine multipartite negativity (GMN) for
-three or four. Quantum Monte Carlo gets the RDM by tomography, sampling every Pauli string on A,
+three or four. Quantum Monte Carlo samples the RDM directly: a matrix element
 
-    rho_A = 2^-n sum_P <P> P.
+    <a| rho_A |b> = Z^-1 sum_xi <a, xi| exp(-beta H) |b, xi>
 
-An MPS gives the same matrix directly: contract the chain from the left, keep the physical
+is a partition function whose imaginary time is periodic everywhere except on the sites of A,
+where the world lines are cut open, and the frequency with which each pair (a, b) of boundary
+configurations appears is proportional to that element (Mao, Ding and Yan,
+https://arxiv.org/abs/2310.16709). Pauli tomography, rho_A = 2^-n sum_P <P> P, is another way
+to rebuild the same matrix from expectation values.
+
+An MPS gives the matrix directly: contract the chain from the left, keep the physical
 legs of the sites in A open (a ket and a bra leg each) and trace out every other site in
 between. For n sites spread over a segment of m sites this costs about m d^(2n) chi^3, so a
 2 x 2 plaquette on a cylinder of width W (a segment of W + 2 sites) is cheap.
@@ -127,7 +133,7 @@ def pauli_expectations(rho):
 
 
 def rdm_from_paulis(expectations):
-    """Tomography: ``rho = 2^-n sum_P <P> P`` from the expectation values of every Pauli string."""
+    """Pauli tomography: ``rho = 2^-n sum_P <P> P`` from the expectation values of every Pauli string."""
     n = len(next(iter(expectations)))
     rho = np.zeros((2**n, 2**n), dtype=complex)
     for word, value in expectations.items():
