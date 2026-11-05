@@ -10,7 +10,8 @@ three or four. Quantum Monte Carlo samples the RDM directly: a matrix element
 is a partition function whose imaginary time is periodic everywhere except on the sites of A,
 where the world lines are cut open, and the frequency with which each pair (a, b) of boundary
 configurations appears is proportional to that element (Mao, Ding and Yan,
-https://arxiv.org/abs/2310.16709). Pauli tomography, rho_A = 2^-n sum_P <P> P, is another way
+https://arxiv.org/abs/2310.16709, and independently Wang et al., https://arxiv.org/abs/2402.14916).
+Pauli tomography, rho_A = 2^-n sum_P <P> P, is another way
 to rebuild the same matrix from expectation values.
 
 An MPS gives the matrix directly: contract the chain from the left, keep the physical
