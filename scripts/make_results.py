@@ -300,6 +300,7 @@ def microscopy_assemble(out):
             del last["rho"]
     return {
         "model": "H = -sum ZZ - h sum X, square lattice; plaquette (x,y) (x,y+1) (x+1,y) (x+1,y+1)",
+        "qmc_source": "QMC matrices of M. Song, T.-T. Wang, L. Lyu, Z. Y. Meng, W. Witczak-Krempa, https://github.com/songmengh/Ising_RDMs",
         "dmrg": [o for o in out if "W" in o],
         "qmc": [o for o in out if "L" in o],
     }
