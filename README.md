@@ -37,6 +37,7 @@ New to DMRG? Start with [`00_start_here`](examples/00_start_here.ipynb): why a l
 | 8 | Finite temperature: purification with ancillas, cooling by imaginary-time TEBD, energy and specific heat at all temperatures, how much entanglement a thermal state needs | [`08_finite_temperature`](examples/08_finite_temperature.ipynb) |
 | 9 | Electrons and two dimensions: Jordan–Wigner by hand (the Hubbard chain as an MPO, what a missing string does to correlators, fixing the filling), cylinders, Néel order from a pinning field, extrapolating in truncation error and width, the Hubbard model with $N$ and $S^z$ conserved | [`09_two_dimensions`](examples/09_two_dimensions.ipynb) |
 | 10 | Calibration: DMRG next to AFQMC, DMET, fixed-node, coupled cluster and other methods on the 2D Hubbard benchmark; reproducing the published width-4 energy; why the width, not $\chi$, limits a 2D number | [`10_calibration`](examples/10_calibration.ipynb) |
+| 17 | Entanglement microscopy: the reduced density matrix of a 2 x 2 plaquette of the 2D Ising model from iDMRG, checked entry by entry against the published QMC tomography; negativity and GMN across the transition; why GMN is fragile to noise | [`17_entanglement_microscopy`](examples/17_entanglement_microscopy.ipynb) |
 
 **Part 4. DMRG and the quantum computer**: when does a fault-tolerant quantum computer beat DMRG, and how DMRG helps it.
 
@@ -79,6 +80,21 @@ DMRG does the same 36 spins in seconds. The quantum computer only wins once the 
 * The Hubbard chain, built as an MPO by hand and solved with our own DMRG, matches free fermions and exact diagonalization to $10^{-12}$. Without the Jordan–Wigner string, $\langle c^\dagger_0 c_j\rangle$ comes out zero where the exact value is up to 0.44.
 * Pinned cylinders up to width 8 bracket the square-lattice Néel order, $0.3026 < M_0 < 0.3173$, around the quantum Monte Carlo value 0.30743; different width fits spread from 0.299 to 0.328, so the width, not $\chi$, is the error that matters.
 * On the width-4 Hubbard cylinder our energies are within $10^{-3}$ of the published DMRG values ($-0.8651$ against $-0.8645$ at $U = 4$), and conserving $N$ and $S^z$ cuts the cost $\chi^3 = 1.7\times10^7$ to $\sum \text{block}^3 = 1.2\times10^5$.
+* Entanglement microscopy of the 2D Ising model ($H = -\sum ZZ - h\sum X$, $h_c = 3.044$): iDMRG on cylinders of width 6 to 8, about a minute per field on a laptop, gives the reduced density matrix of a $2\times2$ plaquette to about $10^{-4}$ of the QMC tomography of Wang et al. and Lyu et al. ($10^{-3}$ at $h_c$), using the matrices Song et al. published in [songmengh/Ising_RDMs](https://github.com/songmengh/Ising_RDMs). Negativity and genuine multipartite negativity (GMN) agree across the transition, including the sudden death of the diagonal pair at $r = \sqrt 2$. The exception is GMN deep in the paramagnet: there a $10^{-3}$ floor of small eigenvalues in the QMC matrices suppresses it, and DMRG, which has no statistical noise, gives the clean value.
+
+  ![Negativity and GMN of the 2D Ising model against h: DMRG on cylinders of width 4, 6 and 8 (lines) and QMC on the 24 x 24 torus (points)](results/microscopy.png)
+
+  | $h$ | NN negativity, DMRG / QMC | diagonal pair, DMRG / QMC | corner GMN, DMRG / QMC | plaquette GMN, DMRG / QMC |
+  |---|---|---|---|---|
+  | 1.0 (width 6) | 0.0052 / 0.0052 | 0.0000 / 0.0000 | 0.0003 / 0.0003 | 0.0059 / 0.0044(1) |
+  | 2.5 (width 6) | 0.0342 / 0.0340 | 0.0002 / 0.0002 | 0.0122 / 0.0114(2) | 0.0167 / 0.0150(2) |
+  | 2.8 (width 8) | 0.0445(6) / 0.0443 | 0.0001(2) / 0.0000 | 0.0225(6) / 0.0207(4) | 0.0261(10) / 0.0240(3) |
+  | 3.044 (width 8) | 0.0573(4) / 0.0567 | 0 / 0 | 0.0407(2) / 0.0373(5) | 0.0578(1) / 0.0549(4) |
+  | 3.5 (width 8) | 0.0556(2) / 0.0554 | 0 / 0 | 0.0444 / 0.0418(5) | 0.0658(2) / 0.0637(4) |
+  | 5.0 (width 8) | 0.0429 / 0.0426 | 0 / 0 | 0.0375 / 0.0320(5) | 0.0556 / 0.0513(5) |
+  | 10.7 (width 6) | 0.0218 / 0.0210(1) | 0 / 0 | 0.0206 / 0.0061(9) | 0.0299 / 0.0112(9) |
+
+  QMC at $L = 24$, $\beta = L$; brackets give the error in the last digit (none: below $10^{-4}$). The DMRG error is the change in the last doubling of $\chi$ and, where both exist, between widths 6 and 8.
 
 **Part 4.**
 
@@ -140,3 +156,9 @@ The package imports as `import dmrg_from_scratch as dmrg`. Entropies are in bits
 * C. Schön, E. Solano, F. Verstraete, J. I. Cirac, M. M. Wolf, *Sequential generation of entangled multiqubit states*, [arXiv:quant-ph/0501096](https://arxiv.org/abs/quant-ph/0501096); [Phys. Rev. Lett. 95, 110503 (2005)](https://doi.org/10.1103/PhysRevLett.95.110503)
 * S.-J. Ran, *Encoding of matrix product states into quantum circuits of one- and two-qubit gates*, [arXiv:1908.07958](https://arxiv.org/abs/1908.07958); [Phys. Rev. A 101, 032310 (2020)](https://doi.org/10.1103/PhysRevA.101.032310)
 * S. Fomichev et al., *Initial state preparation for quantum chemistry on quantum computers*, [arXiv:2310.18410](https://arxiv.org/abs/2310.18410); [PRX Quantum 5, 040339 (2024)](https://doi.org/10.1103/PRXQuantum.5.040339)
+* T.-T. Wang, M. Song, L. Lyu, W. Witczak-Krempa, Z. Y. Meng, *Entanglement microscopy and tomography in many-body systems*, [arXiv:2402.14916](https://arxiv.org/abs/2402.14916); [Nat. Commun. 16, 96 (2025)](https://doi.org/10.1038/s41467-024-55354-z)
+* L. Lyu, M. Song, T.-T. Wang, Z. Y. Meng, W. Witczak-Krempa, *Multiparty entanglement microscopy of quantum Ising models in one, two, and three dimensions*, [arXiv:2412.12533](https://arxiv.org/abs/2412.12533); [Phys. Rev. B 111, 245108 (2025)](https://doi.org/10.1103/PhysRevB.111.245108); QMC reduced density matrices: M. Song, T.-T. Wang, L. Lyu, Z. Y. Meng, W. Witczak-Krempa, [songmengh/Ising_RDMs](https://github.com/songmengh/Ising_RDMs)
+* S. Hesselmann, S. Wessel, *Thermal Ising transitions in the vicinity of two-dimensional quantum critical points*, [arXiv:1602.02096](https://arxiv.org/abs/1602.02096); [Phys. Rev. B 93, 155157 (2016)](https://doi.org/10.1103/PhysRevB.93.155157)
+* G. Vidal, R. F. Werner, *A computable measure of entanglement*, [arXiv:quant-ph/0102117](https://arxiv.org/abs/quant-ph/0102117); [Phys. Rev. A 65, 032314 (2002)](https://doi.org/10.1103/PhysRevA.65.032314)
+* B. Jungnitsch, T. Moroder, O. Gühne, *Taming multiparticle entanglement*, [arXiv:1010.6049](https://arxiv.org/abs/1010.6049); [Phys. Rev. Lett. 106, 190502 (2011)](https://doi.org/10.1103/PhysRevLett.106.190502)
+* M. Hofmann, T. Moroder, O. Gühne, *Analytical characterization of the genuine multiparticle negativity*, [arXiv:1401.2424](https://arxiv.org/abs/1401.2424); [J. Phys. A 47, 155301 (2014)](https://doi.org/10.1088/1751-8113/47/15/155301)
