@@ -64,6 +64,27 @@ def segment_rdm(tensors, sites, left=None):
     return permute_qubits(rho, [order.index(s) for s in sites])
 
 
+def left_end_rdm(tensors, sites):
+    """RDM of ``sites`` near the open left end of a finite, right-canonical MPS.
+
+    The first tensor has a left bond of dimension 1, so the first m sites (m = max(sites) + 1)
+    form a wavefunction theta[s_0 ... s_{m-1}, a] whose rest, to the right of bond a, is an
+    isometry. Then rho_A = Tr_rest(theta theta^dagger): reshape theta into (region, everything
+    else) and multiply. Memory d^m chi instead of the d^(2n) chi^2 of :func:`segment_rdm`, and
+    one matrix product, so six sites at chi = 512 take a second.
+    """
+    m = max(sites) + 1
+    d = tensors[0].shape[1]
+    theta = tensors[0].reshape(d, -1)  # left bond of dimension 1
+    for B in tensors[1:m]:
+        theta = (theta @ B.reshape(B.shape[0], -1)).reshape(-1, B.shape[2])
+    rest = [s for s in range(m) if s not in sites]
+    T = theta.reshape([d] * m + [theta.shape[1]]).transpose(list(sites) + rest + [m])
+    T = T.reshape(d ** len(sites), -1)
+    rho = T @ T.conj().T
+    return rho / np.trace(rho)
+
+
 def permute_qubits(rho, perm):
     """Reorder the qubits of ``rho``: qubit k of the result is qubit ``perm[k]`` of the input."""
     n = len(perm)

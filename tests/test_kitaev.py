@@ -75,6 +75,16 @@ def test_dmrg_matches_ed_on_flux_free_16_site_torus():
     assert np.isclose(np.real(pauli_expectations(rho_ed)["XYZXYZ"]), 1)
 
 
+def test_left_end_rdm_matches_dense():
+    from dmrg_from_scratch.microscopy import left_end_rdm
+
+    mps = dmrg.right_canonicalize(dmrg.random_mps(10, chi=8, seed=3))
+    psi = dmrg.to_dense(mps)
+    psi /= np.linalg.norm(psi)
+    for sites in [(0, 1, 5, 6, 8, 9), (7, 2, 4)]:
+        assert np.allclose(left_end_rdm(mps, list(sites)), dense_rdm(psi, sites, 10))
+
+
 @pytest.mark.parametrize("parties", [[(0,), (1,)], [(0, 1), (2, 3), (4, 5)]])
 def test_region_measures_on_simple_states(parties):
     n = sum(len(p) for p in parties)
