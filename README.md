@@ -38,6 +38,7 @@ New to DMRG? Start with [`00_start_here`](examples/00_start_here.ipynb): why a l
 | 9 | Electrons and two dimensions: Jordan–Wigner by hand (the Hubbard chain as an MPO, what a missing string does to correlators, fixing the filling), cylinders, Néel order from a pinning field, extrapolating in truncation error and width, the Hubbard model with $N$ and $S^z$ conserved | [`09_two_dimensions`](examples/09_two_dimensions.ipynb) |
 | 10 | Calibration: DMRG next to AFQMC, DMET, fixed-node, coupled cluster and other methods on the 2D Hubbard benchmark; reproducing the published width-4 energy; why the width, not $\chi$, limits a 2D number | [`10_calibration`](examples/10_calibration.ipynb) |
 | 17 | Entanglement microscopy: the reduced density matrix of a 2 x 2 plaquette of the 2D Ising model from iDMRG, checked entry by entry against the published QMC reduced density matrices; negativity and GMN across the transition; why GMN is fragile to noise | [`17_entanglement_microscopy`](examples/17_entanglement_microscopy.ipynb) |
+| 18 | Entanglement loops in Kitaev's spin liquid: DMRG on the 24-site cluster of Lyu et al. checked against ED state by state; why DMRG misses ground states on a torus (conserved loops and parities) and how one run per sector fixes it; where it fails (32 sites) | [`18_kitaev_entanglement_loops`](examples/18_kitaev_entanglement_loops.ipynb) |
 
 **Part 4. DMRG and the quantum computer**: when does a fault-tolerant quantum computer beat DMRG, and how DMRG helps it.
 
@@ -95,6 +96,10 @@ DMRG does the same 36 spins in seconds. The quantum computer only wins once the 
   | 10.7 (width 6) | 0.0218 / 0.0210(1) | 0 / 0 | 0.0206 / 0.0061(9) | 0.0299 / 0.0112(9) |
 
   QMC at $L = 24$, $\beta = L$; brackets give the error in the last digit (none: below $10^{-4}$). The DMRG error is the change in the last doubling of $\chi$ and, where both exist, between widths 6 and 8.
+
+* On Kitaev's 24-site Nauru cluster, DMRG run sector by sector reproduces ED's three-fold ground level and its RDMs to $10^{-13}$. The hexagon has GMN 0.208; the fork, pairs and triples have none.
+* Plain DMRG lands on the exact ground state of the wrong topological sector, 0.014 above the true one on 16 sites.
+* On the 32-site cluster DMRG ends 1.5 above the energy estimated from the infinite lattice: the worst cut crosses 18 bonds instead of 10.
 
 **Part 4.**
 
@@ -158,6 +163,9 @@ The package imports as `import dmrg_from_scratch as dmrg`. Entropies are in bits
 * S. Fomichev et al., *Initial state preparation for quantum chemistry on quantum computers*, [arXiv:2310.18410](https://arxiv.org/abs/2310.18410); [PRX Quantum 5, 040339 (2024)](https://doi.org/10.1103/PRXQuantum.5.040339)
 * T.-T. Wang, M. Song, L. Lyu, W. Witczak-Krempa, Z. Y. Meng, *Entanglement microscopy and tomography in many-body systems*, [arXiv:2402.14916](https://arxiv.org/abs/2402.14916); [Nat. Commun. 16, 96 (2025)](https://doi.org/10.1038/s41467-024-55354-z)
 * L. Lyu, M. Song, T.-T. Wang, Z. Y. Meng, W. Witczak-Krempa, *Multiparty entanglement microscopy of quantum Ising models in one, two, and three dimensions*, [arXiv:2412.12533](https://arxiv.org/abs/2412.12533); [Phys. Rev. B 111, 245108 (2025)](https://doi.org/10.1103/PhysRevB.111.245108); QMC reduced density matrices: M. Song, T.-T. Wang, L. Lyu, Z. Y. Meng, W. Witczak-Krempa, [songmengh/Ising_RDMs](https://github.com/songmengh/Ising_RDMs)
+* L. Lyu, D. Chandorkar, S. Kapoor, S. Takei, E. S. Sørensen, W. Witczak-Krempa, *Multiparty entanglement loops in quantum spin liquids*, [arXiv:2505.18124](https://arxiv.org/abs/2505.18124); [Nat. Commun. 17, 5650 (2026)](https://doi.org/10.1038/s41467-026-71113-8)
+* A. Kitaev, *Anyons in an exactly solved model and beyond*, [arXiv:cond-mat/0506438](https://arxiv.org/abs/cond-mat/0506438); [Ann. Phys. 321, 2 (2006)](https://doi.org/10.1016/j.aop.2005.10.005)
+* M. Gohlke, R. Moessner, F. Pollmann, *Dynamical and topological properties of the Kitaev model in a [111] magnetic field*, [arXiv:1804.06811](https://arxiv.org/abs/1804.06811); [Phys. Rev. B 98, 014418 (2018)](https://doi.org/10.1103/PhysRevB.98.014418)
 * B.-B. Mao, Y.-M. Ding, Z. Yan, *Sampling reduced density matrix to extract fine levels of entanglement spectrum and restore entanglement Hamiltonian*, [arXiv:2310.16709](https://arxiv.org/abs/2310.16709); [Nat. Commun. 16, 2880 (2025)](https://doi.org/10.1038/s41467-025-58058-0)
 * S. Hesselmann, S. Wessel, *Thermal Ising transitions in the vicinity of two-dimensional quantum critical points*, [arXiv:1602.02096](https://arxiv.org/abs/1602.02096); [Phys. Rev. B 93, 155157 (2016)](https://doi.org/10.1103/PhysRevB.93.155157)
 * G. Vidal, R. F. Werner, *A computable measure of entanglement*, [arXiv:quant-ph/0102117](https://arxiv.org/abs/quant-ph/0102117); [Phys. Rev. A 65, 032314 (2002)](https://doi.org/10.1103/PhysRevA.65.032314)
