@@ -25,10 +25,10 @@ A fresh `python scripts/make_results.py kitaev_loops`: 43 tasks, 535 CPU-minutes
 
 ## Open for Liuke
 
-1. README row and bullets for notebook 18 (draft given in the session, not yet in README.md).
+1. README row, bullets and references for notebook 18: approved and committed (`9586d90`).
 2. Paper Sec. III: after measuring one hexagon spin, the five others have GMN 0 as five single parties (exact infinite RDM, X, Y or Z), positive only for some three-party splits. Exercise 6.
 3. Fork GMN is nonzero at g = 1 on small tori (0.054 on 16, 0.041 on 24 sites), against the paper's "loopy only" for the Z2 phase. Exercise 4.
 
 ## Before merging
 
-Delete `scripts/wip_notebook18/`, add the README row once approved, run `pytest -m slow tests/test_notebooks.py` for notebook 18, update the repo's status.
+Delete `scripts/wip_notebook18/`, run `pytest -m slow tests/test_notebooks.py` for notebook 18, update the repo's status.
