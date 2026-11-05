@@ -10,6 +10,7 @@ laptop, set by the 8 x 8 cylinder of ``dmrg_ladders`` and by ``hubbard_width4`` 
 
 import json
 import sys
+import time
 from concurrent.futures import ProcessPoolExecutor
 from pathlib import Path
 
@@ -306,6 +307,146 @@ def microscopy_assemble(out):
     }
 
 
+# Notebook 18: Kitaev's honeycomb model on the clusters of Lyu et al. (arXiv:2505.18124), DMRG against ED.
+
+KITAEV_REGIONS = {  # name -> (region, parties as positions in the region)
+    "hexagon_3": ("hexagon", [(0, 1), (2, 3), (4, 5)]),
+    "hexagon_6": ("hexagon", [(k,) for k in range(6)]),
+    "fork_3": ("fork", [(0, 1), (2, 3), (4, 5)]),
+    "fork_6": ("fork", [(k,) for k in range(6)]),
+    "pair": ("hexagon", [(0,), (1,)]),  # hexagon sites 1-2: a z bond
+    "three": ("hexagon", [(0,), (1,), (2,)]),  # hexagon sites 1-2-3: three consecutive spins
+}
+
+
+def kitaev_measures(rdms, names=tuple(KITAEV_REGIONS)):
+    """GMN (negativity for two parties) of each region, from the hexagon and fork RDMs."""
+    from dmrg_from_scratch import kitaev as kt
+    from dmrg_from_scratch.microscopy import partial_trace
+
+    out = {}
+    for name in names:
+        region, parties = KITAEV_REGIONS[name]
+        rho = rdms[region]
+        used = sorted(q for p in parties for q in p)
+        if len(used) < 6:
+            rho = partial_trace(rho, used)
+        out[name] = float(kt.region_measures(rho, parties))
+    return out
+
+
+def kitaev_tenpy_states(Ws, chis, n_states, seed=0):
+    """Lowest ``n_states`` of an MPO of this package by TeNPy DMRG (no conserved charges), each
+    orthogonal to the ones before, at each bond dimension in ``chis`` in turn (each from the last).
+    TeNPy runs the same algorithm about four times faster, and its mixer lets a sweep leave the
+    topological sector it started in."""
+    import tenpy.linalg.np_conserved as npc
+    from tenpy.algorithms import dmrg as tenpy_dmrg
+    from tenpy.models.lattice import Chain
+    from tenpy.models.model import MPOModel
+    from tenpy.networks.mpo import MPO
+    from tenpy.networks.mps import MPS
+    from tenpy.networks.site import SpinHalfSite
+
+    n = len(Ws)
+    site = SpinHalfSite(conserve=None)  # basis 0 = up = Z = +1, as in this package
+    arrays = [npc.Array.from_ndarray_trivial(W, labels=["wL", "wR", "p", "p*"]) for W in Ws]
+    mpo = MPO([site] * n, arrays, bc="finite", IdL=[0] * n + [None], IdR=[None] + [1] * (n - 1) + [0])
+    model = MPOModel(Chain(n, site, bc="open", bc_MPS="finite"), mpo)
+    rng = np.random.default_rng(seed)
+    found, runs = [], []
+    for k in range(n_states):
+        psi = MPS.from_product_state([site] * n, list(rng.choice(["up", "down"], n)), bc="finite")
+        for chi in chis:
+            t0 = time.perf_counter()
+            params = {
+                "trunc_params": {"chi_max": chi, "svd_min": 1e-12},
+                "mixer": True,
+                "max_sweeps": 10,
+                "min_sweeps": 4,
+                "max_trunc_err": 1.0,
+            }
+            E = float(tenpy_dmrg.run(psi, model, params, orthogonal_to=found or None)["E"])
+            runs.append({"state": k, "chi": chi, "energy": E, "seconds": time.perf_counter() - t0, "psi": psi.copy()})
+        found.append(psi.copy())
+    return runs
+
+
+def kitaev_cluster_run(cluster, g, chis, n_states, with_ed, flux_penalty=0.2):
+    """DMRG (and, up to 24 sites, ED) for Kitaev's model at anisotropy ``g`` on a twisted-torus cluster.
+
+    The RDMs compared are those of the ground-state manifold: an equal mixture of its exactly
+    degenerate states (the T -> 0 limit of the thermal state, as in Lyu et al.). DMRG finds the
+    lowest ``n_states`` one after the other and keeps those within 1e-3 of the lowest; ED keeps
+    every state within 1e-6 of the lowest.
+    """
+    from scipy.sparse.linalg import eigsh
+
+    from dmrg_from_scratch import kitaev as kt
+    from dmrg_from_scratch.exact import matvec_operator
+    from dmrg_from_scratch.microscopy import dense_rdm, left_end_rdm, pauli_expectations, tenpy_segment
+
+    Lx, Ly, tw = cluster
+    H = kt.kitaev_honeycomb(Lx, Ly, K=kt.anisotropic_couplings(g), twist=tw, flux_penalty=flux_penalty)
+    # both regions touch site 0, so their RDMs come from the left end of the MPS (left_end_rdm)
+    regions = {"hexagon": kt.hexagon(0, 0, Lx, Ly, tw), "fork": kt.fork(1, 1, Lx, Ly, tw)}
+
+    def mixture(rdm_of_state, states):
+        return {name: sum(rdm_of_state(s, sites) for s in states).real / len(states) for name, sites in regions.items()}
+
+    out = {"cluster": list(cluster), "g": g, "n": H.n, "flux_penalty": flux_penalty}
+    ed = None
+    if with_ed:
+        t0 = time.perf_counter()
+        v0 = np.random.default_rng(0).standard_normal(2**H.n)
+        vals, vecs = eigsh(matvec_operator(H), k=6, which="SA", tol=1e-10, v0=v0)
+        order = np.argsort(vals)
+        vals, vecs = vals[order], vecs[:, order]
+        ground = [vecs[:, k] for k in range(len(vals)) if vals[k] - vals[0] < 1e-6]
+        ed = mixture(lambda psi, sites: dense_rdm(psi, sites, H.n), ground)
+        out["ed"] = {
+            "energies": vals.tolist(),
+            "degeneracy": len(ground),
+            "seconds": time.perf_counter() - t0,
+            "measures": kitaev_measures(ed),
+        }
+        del vecs, ground
+
+    def mps_rdm(psi, sites):
+        _, tensors = tenpy_segment(psi, 0, max(sites))
+        return left_end_rdm(tensors, list(sites))
+
+    runs = kitaev_tenpy_states(dmrg.pauli_string_mpo(H), chis, n_states)
+    # the DMRG ground manifold: the states within 1e-3 of the lowest at the largest chi (the next
+    # sector is 0.02 or more above on these clusters, the DMRG energy error 1e-4 or less)
+    last = sorted((r for r in runs if r["chi"] == chis[-1]), key=lambda r: r["energy"])
+    manifold = [r["state"] for r in last if r["energy"] - last[0]["energy"] < 1e-3]
+    out["dmrg_degeneracy"] = len(manifold)
+    out["dmrg"], previous = [], None
+    for chi in chis:
+        states = [r for r in runs if r["chi"] == chi]
+        mix = mixture(mps_rdm, [r["psi"] for r in states if r["state"] in manifold])
+        row = {"chi": chi, "energies": [r["energy"] for r in states], "seconds": sum(r["seconds"] for r in states)}
+        if ed is not None:
+            row["max_diff_ed"] = {name: float(np.abs(mix[name] - ed[name]).max()) for name in mix}
+        if previous is not None:
+            row["max_diff_previous_chi"] = {name: float(np.abs(mix[name] - previous[name]).max()) for name in mix}
+        previous = mix
+        out["dmrg"].append(row)
+    out["dmrg"][-1]["measures"] = kitaev_measures(previous)
+    paulis = pauli_expectations(previous["hexagon"])
+    out["dmrg"][-1]["hexagon_paulis"] = {k: round(float(np.real(v)), 6) for k, v in paulis.items() if abs(v) > 1e-6}
+    return out
+
+
+def kitaev_exact_tl():
+    """GMN of the exact hexagon RDM of the infinite isotropic lattice (Lyu et al., SM Tables II-IV)."""
+    from dmrg_from_scratch import kitaev as kt
+
+    rho = kt.exact_hexagon_rdm().real
+    return {"g": 0.0, "measures": kitaev_measures({"hexagon": rho}, ("hexagon_3", "hexagon_6", "pair", "three"))}
+
+
 # Each result: (list of tasks, function assembling the task outputs into a JSON-ready dict).
 RESULTS_SPEC = {
     # notebook 00: 60 spins at three fields, chi = 24
@@ -367,6 +508,22 @@ RESULTS_SPEC = {
         + [(microscopy_idmrg, 8, h, [64, 128]) for h in (2.0, 2.8, 3.044, 3.5, 5.0)]
         + [(microscopy_qmc, L, h) for L in (16, 24) for h in MICRO_H],
         microscopy_assemble,
+    ),
+    # notebook 18: Kitaev's model on the Nauru (24 sites, DMRG and ED) and Dyck (32 sites, DMRG) clusters,
+    # isotropic (g = 0) and in the gapped Z2 phase (g = 1), and the exact infinite-lattice hexagon
+    "kitaev_loops": (
+        [
+            (kitaev_cluster_run, (6, 4, 2), 0.0, [128, 256, 512], 4, True),
+            (kitaev_cluster_run, (6, 4, 2), 1.0, [64, 128, 256], 3, True),
+            (kitaev_cluster_run, (4, 8, 4), 0.0, [128, 256, 512], 4, False),
+            (kitaev_cluster_run, (4, 8, 4), 1.0, [64, 128, 256], 3, False),
+            (kitaev_exact_tl,),
+        ],
+        lambda out: {
+            "model": "H = sum K_gamma S^gamma S^gamma - 0.2 sum_p W_p, K = (1 - g/2, 1 - g/2, 1 + g)",
+            "clusters": out[:-1],
+            "exact_infinite": out[-1],
+        },
     ),
 }
 
