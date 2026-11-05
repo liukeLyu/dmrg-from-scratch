@@ -335,11 +335,10 @@ def kitaev_measures(rdms, names=tuple(KITAEV_REGIONS)):
     return out
 
 
-def kitaev_tenpy_states(Ws, chis, n_states, seed=0):
-    """Lowest ``n_states`` of an MPO of this package by TeNPy DMRG (no conserved charges), each
-    orthogonal to the ones before, at each bond dimension in ``chis`` in turn (each from the last).
-    TeNPy runs the same algorithm about four times faster, and its mixer lets a sweep leave the
-    topological sector it started in."""
+def kitaev_tenpy_dmrg(Ws, chis, seed=0):
+    """Ground state of an MPO of this package by TeNPy DMRG (no conserved charges), at each bond
+    dimension in ``chis`` in turn (each from the last). TeNPy runs the same algorithm about four
+    times faster."""
     import tenpy.linalg.np_conserved as npc
     from tenpy.algorithms import dmrg as tenpy_dmrg
     from tenpy.models.lattice import Chain
@@ -354,89 +353,109 @@ def kitaev_tenpy_states(Ws, chis, n_states, seed=0):
     mpo = MPO([site] * n, arrays, bc="finite", IdL=[0] * n + [None], IdR=[None] + [1] * (n - 1) + [0])
     model = MPOModel(Chain(n, site, bc="open", bc_MPS="finite"), mpo)
     rng = np.random.default_rng(seed)
-    found, runs = [], []
-    for k in range(n_states):
-        psi = MPS.from_product_state([site] * n, list(rng.choice(["up", "down"], n)), bc="finite")
-        for chi in chis:
-            t0 = time.perf_counter()
-            params = {
-                "trunc_params": {"chi_max": chi, "svd_min": 1e-12},
-                "mixer": True,
-                "max_sweeps": 10,
-                "min_sweeps": 4,
-                "max_trunc_err": 1.0,
-            }
-            E = float(tenpy_dmrg.run(psi, model, params, orthogonal_to=found or None)["E"])
-            runs.append({"state": k, "chi": chi, "energy": E, "seconds": time.perf_counter() - t0, "psi": psi.copy()})
-        found.append(psi.copy())
+    psi = MPS.from_product_state([site] * n, list(rng.choice(["up", "down"], n)), bc="finite")
+    runs = []
+    for chi in chis:
+        t0 = time.perf_counter()
+        params = {
+            "trunc_params": {"chi_max": chi, "svd_min": 1e-12},
+            "mixer": True,
+            "max_sweeps": 10,
+            "min_sweeps": 4,
+            "max_trunc_err": 1.0,
+        }
+        start = psi.copy()
+        try:
+            E = float(tenpy_dmrg.run(psi, model, params)["E"])
+            mixer = True
+        except np.linalg.LinAlgError:  # the mixer's eigendecomposition can fail to converge (rarely)
+            psi, params["mixer"], mixer = start, False, False
+            E = float(tenpy_dmrg.run(psi, model, params)["E"])
+        psi.canonical_form()  # DMRG can end slightly off canonical form, which expectation values and RDMs assume
+        runs.append({"chi": chi, "energy": E, "mixer": mixer, "seconds": time.perf_counter() - t0, "psi": psi.copy()})
     return runs
 
 
-def kitaev_cluster_run(cluster, g, chis, n_states, with_ed, flux_penalty=0.2):
-    """DMRG (and, up to 24 sites, ED) for Kitaev's model at anisotropy ``g`` on a twisted-torus cluster.
+def kitaev_regions(cluster):
+    from dmrg_from_scratch import kitaev as kt
 
-    The RDMs compared are those of the ground-state manifold: an equal mixture of its exactly
-    degenerate states (the T -> 0 limit of the thermal state, as in Lyu et al.). DMRG finds the
-    lowest ``n_states`` one after the other and keeps those within 1e-3 of the lowest; ED keeps
-    every state within 1e-6 of the lowest.
+    Lx, Ly, tw = cluster
+    # both regions touch site 0, so their RDMs come from the left end of the MPS (left_end_rdm)
+    return {"hexagon": kt.hexagon(0, 0, Lx, Ly, tw), "fork": kt.fork(1, 1, Lx, Ly, tw)}
+
+
+def kitaev_sector_run(cluster, g, sector, chis, flux_penalty=0.2, mu=0.5):
+    """DMRG for Kitaev's model in one symmetry sector of a twisted torus: ``sector`` is
+    (W_l1, W_l2), the topological sector, or (W_l1, W_l2, P_x, P_z) with the global spin parities too.
+
+    A sweep never brings back a sector that has dropped out of the state (every step of DMRG is
+    built from H, which conserves the loops and the parities), so each sector gets its own run,
+    lowered below the others by -mu (s1 W_l1 + s2 W_l2 [+ px P_x + pz P_z]) as the flux-free sector
+    is by the flux penalty.
     """
+    from dmrg_from_scratch import kitaev as kt
+    from dmrg_from_scratch.microscopy import left_end_rdm, tenpy_segment
+
+    Lx, Ly, tw = cluster
+    K = kt.anisotropic_couplings(g)
+    parity = sector[2:] or None
+    H = kt.kitaev_honeycomb(
+        Lx, Ly, K=K, twist=tw, flux_penalty=flux_penalty, sector=sector[:2], parity=parity, sector_penalty=mu
+    )
+    loops = kt.torus_loops(Lx, Ly, tw)
+    if parity is not None:
+        loops += [tuple((s, a) for s in range(Lx * Ly)) for a in "XZ"]  # measured like the loops
+    rows = []
+    for r in kitaev_tenpy_dmrg(dmrg.pauli_string_mpo(H), chis):
+        psi = r["psi"]
+        w = [float(np.real(psi.expectation_value_term([("Sigma" + p.lower(), s) for s, p in l]))) for l in loops]
+        rdms = {}
+        for name, sites in kitaev_regions(cluster).items():
+            _, tensors = tenpy_segment(psi, 0, max(sites))
+            rdms[name] = left_end_rdm(tensors, list(sites)).real
+        energy = r["energy"] + mu * sum(s * x for s, x in zip(sector, w, strict=True))  # H without the penalties
+        rows.append(
+            {"chi": r["chi"], "energy": energy, "loops": w, "mixer": r["mixer"], "seconds": r["seconds"], "rdms": rdms}
+        )
+    return {"cluster": list(cluster), "g": g, "sector": list(sector), "runs": rows}
+
+
+def kitaev_ed(cluster, g, flux_penalty=0.2):
+    """Lowest levels of Kitaev's model on a twisted torus by Lanczos, the ground manifold (every state
+    within 1e-6 of the lowest) resolved into topological sectors, and the RDMs of each ground state."""
     from scipy.sparse.linalg import eigsh
 
     from dmrg_from_scratch import kitaev as kt
     from dmrg_from_scratch.exact import matvec_operator
-    from dmrg_from_scratch.microscopy import dense_rdm, left_end_rdm, pauli_expectations, tenpy_segment
+    from dmrg_from_scratch.microscopy import dense_rdm
+    from dmrg_from_scratch.models import PauliSum
 
     Lx, Ly, tw = cluster
     H = kt.kitaev_honeycomb(Lx, Ly, K=kt.anisotropic_couplings(g), twist=tw, flux_penalty=flux_penalty)
-    # both regions touch site 0, so their RDMs come from the left end of the MPS (left_end_rdm)
-    regions = {"hexagon": kt.hexagon(0, 0, Lx, Ly, tw), "fork": kt.fork(1, 1, Lx, Ly, tw)}
-
-    def mixture(rdm_of_state, states):
-        return {name: sum(rdm_of_state(s, sites) for s in states).real / len(states) for name, sites in regions.items()}
-
-    out = {"cluster": list(cluster), "g": g, "n": H.n, "flux_penalty": flux_penalty}
-    ed = None
-    if with_ed:
-        t0 = time.perf_counter()
-        v0 = np.random.default_rng(0).standard_normal(2**H.n)
-        vals, vecs = eigsh(matvec_operator(H), k=6, which="SA", tol=1e-10, v0=v0)
-        order = np.argsort(vals)
-        vals, vecs = vals[order], vecs[:, order]
-        ground = [vecs[:, k] for k in range(len(vals)) if vals[k] - vals[0] < 1e-6]
-        ed = mixture(lambda psi, sites: dense_rdm(psi, sites, H.n), ground)
-        out["ed"] = {
-            "energies": vals.tolist(),
-            "degeneracy": len(ground),
-            "seconds": time.perf_counter() - t0,
-            "measures": kitaev_measures(ed),
-        }
-        del vecs, ground
-
-    def mps_rdm(psi, sites):
-        _, tensors = tenpy_segment(psi, 0, max(sites))
-        return left_end_rdm(tensors, list(sites))
-
-    runs = kitaev_tenpy_states(dmrg.pauli_string_mpo(H), chis, n_states)
-    # the DMRG ground manifold: the states within 1e-3 of the lowest at the largest chi (the next
-    # sector is 0.02 or more above on these clusters, the DMRG energy error 1e-4 or less)
-    last = sorted((r for r in runs if r["chi"] == chis[-1]), key=lambda r: r["energy"])
-    manifold = [r["state"] for r in last if r["energy"] - last[0]["energy"] < 1e-3]
-    out["dmrg_degeneracy"] = len(manifold)
-    out["dmrg"], previous = [], None
-    for chi in chis:
-        states = [r for r in runs if r["chi"] == chi]
-        mix = mixture(mps_rdm, [r["psi"] for r in states if r["state"] in manifold])
-        row = {"chi": chi, "energies": [r["energy"] for r in states], "seconds": sum(r["seconds"] for r in states)}
-        if ed is not None:
-            row["max_diff_ed"] = {name: float(np.abs(mix[name] - ed[name]).max()) for name in mix}
-        if previous is not None:
-            row["max_diff_previous_chi"] = {name: float(np.abs(mix[name] - previous[name]).max()) for name in mix}
-        previous = mix
-        out["dmrg"].append(row)
-    out["dmrg"][-1]["measures"] = kitaev_measures(previous)
-    paulis = pauli_expectations(previous["hexagon"])
-    out["dmrg"][-1]["hexagon_paulis"] = {k: round(float(np.real(v)), 6) for k, v in paulis.items() if abs(v) > 1e-6}
-    return out
+    t0 = time.perf_counter()
+    v0 = np.random.default_rng(0).standard_normal(2**H.n)
+    vals, vecs = eigsh(matvec_operator(H), k=6, which="SA", tol=1e-10, v0=v0)
+    order = np.argsort(vals)
+    vals, vecs = vals[order], vecs[:, order]
+    V = vecs[:, vals - vals[0] < 1e-6]
+    words = kt.torus_loops(Lx, Ly, tw) + [tuple((s, a) for s in range(H.n)) for a in "XZ"]  # loops, P_x, P_z
+    loops = [matvec_operator(PauliSum(H.n, [(1.0, l)])) for l in words]
+    A = [V.conj().T @ (W @ V) for W in loops]
+    _, U = np.linalg.eigh(sum(c * a for c, a in zip([1, 0.37, 0.21, 0.13], A, strict=True)))  # all commute
+    sectors, rdms = [], {}
+    for psi in (V @ U).T:
+        sec = tuple(int(round(float(np.real(psi.conj() @ (W @ psi))))) for W in loops)
+        sectors.append(list(sec))
+        rdms[sec] = {name: dense_rdm(psi, sites, H.n).real for name, sites in kitaev_regions(cluster).items()}
+    return {
+        "cluster": list(cluster),
+        "g": g,
+        "energies": vals.tolist(),
+        "degeneracy": V.shape[1],
+        "sectors": sectors,
+        "seconds": time.perf_counter() - t0,
+        "rdms": rdms,
+    }
 
 
 def kitaev_exact_tl():
@@ -445,6 +464,91 @@ def kitaev_exact_tl():
 
     rho = kt.exact_hexagon_rdm().real
     return {"g": 0.0, "measures": kitaev_measures({"hexagon": rho}, ("hexagon_3", "hexagon_6", "pair", "three"))}
+
+
+KITAEV_LOOPS = [(1, 1), (1, -1), (-1, 1), (-1, -1)]
+KITAEV_FULL = [lo + pa for lo in KITAEV_LOOPS for pa in KITAEV_LOOPS]  # (W_l1, W_l2, P_x, P_z)
+KITAEV_POINTS = [  # (cluster, g, bond dimensions, with ED, sectors)
+    ((6, 4, 2), 0.0, [128, 256, 512], True, KITAEV_FULL),
+    ((6, 4, 2), 1.0, [64, 128, 256], True, KITAEV_FULL),
+    ((4, 8, 4), 0.0, [128, 256, 512], False, KITAEV_LOOPS),  # 32 sites do not converge anyway
+    ((4, 8, 4), 1.0, [64, 128, 256], False, KITAEV_LOOPS),
+]
+
+
+def kitaev_assemble(out):
+    """Ground manifolds from the sector runs, compared with ED, and the GMN of their equal mixtures.
+
+    The RDM of a degenerate ground level is that of the equal mixture of its states (the T -> 0 limit
+    of the thermal state, as in Lyu et al.). DMRG keeps the sectors within 1e-3 of the lowest at the
+    largest chi (the next level is 0.02 or more above on these clusters).
+    """
+    from dmrg_from_scratch.microscopy import pauli_expectations
+
+    eds = {(tuple(o["cluster"]), o["g"]): o for o in out if "degeneracy" in o}
+    sector_runs = [o for o in out if "sector" in o]
+
+    def mixture(rdm_list):
+        return {name: sum(r[name] for r in rdm_list) / len(rdm_list) for name in rdm_list[0]}
+
+    def max_diff(a, b):
+        return {name: float(np.abs(a[name] - b[name]).max()) for name in a}
+
+    clusters, to_measure = [], []
+    for cluster, g, chis, _, sectors in KITAEV_POINTS:
+        runs = {tuple(o["sector"]): o["runs"] for o in sector_runs if tuple(o["cluster"]) == cluster and o["g"] == g}
+        # a run is in its sector if every measured label is within 1e-3 of it at the largest chi; it can
+        # miss when the sector's lowest state lies more than 2 mu above a neighbouring sector's, or when
+        # DMRG is not converged
+        reached = [
+            sec for sec in sectors if max(abs(w - x) for w, x in zip(runs[sec][-1]["loops"], sec, strict=True)) < 1e-3
+        ]
+        candidates = reached or sectors  # if no run is in its sector (not converged), compare all of them
+        last = {sec: runs[sec][-1]["energy"] for sec in candidates}
+        manifold = [sec for sec in candidates if last[sec] - min(last.values()) < 1e-3]
+        c = {"cluster": list(cluster), "g": g, "n": cluster[0] * cluster[1], "flux_penalty": 0.2}
+        c["sectors"] = [list(sec) for sec in sectors]
+        c["sectors_reached"] = [list(sec) for sec in reached]
+        c["dmrg_degeneracy"] = len(manifold)
+        c["dmrg_sectors"] = [list(sec) for sec in manifold]
+        ed = eds.get((cluster, g))
+        if ed is not None:
+            ed_mix = mixture(list(ed["rdms"].values()))
+            c["ed"] = {k: ed[k] for k in ("energies", "degeneracy", "sectors", "seconds")}
+            to_measure.append((c["ed"], ed_mix))
+        c["dmrg"], previous = [], None
+        for k, chi in enumerate(chis):
+            mix = mixture([runs[sec][k]["rdms"] for sec in manifold])
+            row = {
+                "chi": chi,
+                "energies": [runs[sec][k]["energy"] for sec in sectors],
+                "loops": [runs[sec][k]["loops"] for sec in sectors],
+                "seconds": sum(runs[sec][k]["seconds"] for sec in sectors),
+                "mixer": [runs[sec][k]["mixer"] for sec in sectors],
+            }
+            if ed is not None:
+                row["max_diff_ed"] = max_diff(mix, ed_mix)
+                row["max_diff_ed_by_sector"] = {
+                    str(list(sec)): max(max_diff(runs[sec][k]["rdms"], ed["rdms"][sec]).values())
+                    for sec in manifold
+                    if sec in ed["rdms"]
+                }
+            if previous is not None:
+                row["max_diff_previous_chi"] = max_diff(mix, previous)
+            previous = mix
+            c["dmrg"].append(row)
+        paulis = pauli_expectations(previous["hexagon"])
+        c["dmrg"][-1]["hexagon_paulis"] = {k: round(float(np.real(v)), 6) for k, v in paulis.items() if abs(v) > 1e-6}
+        to_measure.append((c["dmrg"][-1], previous))
+        clusters.append(c)
+    with ProcessPoolExecutor() as pool:  # the GMN of a six-spin region takes a minute or two
+        for (target, _), m in zip(to_measure, pool.map(kitaev_measures, [r for _, r in to_measure]), strict=True):
+            target["measures"] = m
+    return {
+        "model": "H = sum K_gamma S^gamma S^gamma - 0.2 sum_p W_p, K = (1 - g/2, 1 - g/2, 1 + g)",
+        "clusters": clusters,
+        "exact_infinite": out[-1],
+    }
 
 
 # Each result: (list of tasks, function assembling the task outputs into a JSON-ready dict).
@@ -512,18 +616,10 @@ RESULTS_SPEC = {
     # notebook 18: Kitaev's model on the Nauru (24 sites, DMRG and ED) and Dyck (32 sites, DMRG) clusters,
     # isotropic (g = 0) and in the gapped Z2 phase (g = 1), and the exact infinite-lattice hexagon
     "kitaev_loops": (
-        [
-            (kitaev_cluster_run, (6, 4, 2), 0.0, [128, 256, 512], 4, True),
-            (kitaev_cluster_run, (6, 4, 2), 1.0, [64, 128, 256], 3, True),
-            (kitaev_cluster_run, (4, 8, 4), 0.0, [128, 256, 512], 4, False),
-            (kitaev_cluster_run, (4, 8, 4), 1.0, [64, 128, 256], 3, False),
-            (kitaev_exact_tl,),
-        ],
-        lambda out: {
-            "model": "H = sum K_gamma S^gamma S^gamma - 0.2 sum_p W_p, K = (1 - g/2, 1 - g/2, 1 + g)",
-            "clusters": out[:-1],
-            "exact_infinite": out[-1],
-        },
+        [(kitaev_ed, cluster, g) for cluster, g, _, with_ed, _ in KITAEV_POINTS if with_ed]
+        + [(kitaev_sector_run, cluster, g, sec, chis) for cluster, g, chis, _, secs in KITAEV_POINTS for sec in secs]
+        + [(kitaev_exact_tl,)],
+        kitaev_assemble,
     ),
 }
 
