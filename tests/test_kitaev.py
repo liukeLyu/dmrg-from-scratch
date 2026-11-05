@@ -56,6 +56,55 @@ def test_plaquettes_commute_with_kitaev():
         assert np.allclose(H @ W, W @ H)
 
 
+def commute(a, b):
+    a, b = dict(a), dict(b)
+    return sum(a[s] != b[s] for s in a if s in b) % 2 == 0
+
+
+def gf2_rank(rows):
+    rows, rank = [int("".join(map(str, r)), 2) for r in rows], 0
+    while rows:
+        pivot = max(rows)
+        if pivot == 0:
+            break
+        rank += 1
+        top = pivot.bit_length() - 1
+        rows = [r ^ pivot if r >> top & 1 else r for r in rows if r != pivot]
+    return rank
+
+
+@pytest.mark.parametrize("cluster", [(4, 4, 0), kt.NAURU, kt.DYCK])
+def test_torus_loops_are_conserved_and_wind_around(cluster):
+    Lx, Ly, tw = cluster
+    H = kt.kitaev_honeycomb(Lx, Ly, twist=tw, flux_penalty=1.0)
+    loops = kt.torus_loops(Lx, Ly, tw)
+    assert all(commute(word, l) for _, word in H.terms for l in loops)  # with every bond and every W_p
+    assert commute(*loops)
+
+    # as sets of sites (mod 2), neither loop nor their product is a product of hexagons
+    def sites(ss):
+        return [int(s in ss) for s in range(Lx * Ly)]
+
+    hexes = [sites(set(h)) for h in kt.plaquettes(Lx, Ly, True, tw)]
+    l1, l2 = (sites({s for s, _ in l}) for l in loops)
+    assert gf2_rank(hexes + [l1, l2]) == gf2_rank(hexes) + 2
+
+
+def test_sector_penalty_selects_each_topological_sector():
+    loops = [matvec_operator(PauliSum(16, [(1.0, l)])) for l in kt.torus_loops(4, 4)]
+    E0 = ground_state(kt.kitaev_honeycomb(4, 4, flux_penalty=0.2))[0]
+    energies = []
+    for sector in [(1, 1), (1, -1), (-1, 1), (-1, -1)]:
+        E, psi = ground_state(kt.kitaev_honeycomb(4, 4, flux_penalty=0.2, sector=sector))
+        assert np.allclose([psi.conj() @ (W @ psi) for W in loops], sector)
+        energies.append(E + 2 * 0.5)
+    assert np.isclose(min(energies), E0)
+    parities = [matvec_operator(PauliSum(16, [(1.0, tuple((s, a) for s in range(16)))])) for a in "XZ"]
+    for parity in [(1, 1), (-1, -1)]:
+        _, psi = ground_state(kt.kitaev_honeycomb(4, 4, flux_penalty=0.2, sector=(1, 1), parity=parity))
+        assert np.allclose([psi.conj() @ (W @ psi) for W in loops + parities], (1, 1, *parity))
+
+
 def test_exact_table_rdm_is_a_state():
     rho = kt.exact_hexagon_rdm()
     assert np.isclose(np.trace(rho).real, 1)

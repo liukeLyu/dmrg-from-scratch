@@ -84,13 +84,86 @@ def plaquettes(Lx, Ly, periodic_x=True, twist=0):
     return [hexagon(x0, y0, Lx, Ly, twist) for x0 in xs for y0 in range(Ly) if (x0 + y0) % 2 == 0]
 
 
-def kitaev_honeycomb(Lx, Ly, K=(1.0, 1.0, 1.0), periodic_x=True, twist=0, flux_penalty=0.0):
+def torus_loops(Lx, Ly, twist=0):
+    """The two loop operators of the torus, as Pauli words ``((site, "X"), ...)``.
+
+    A loop operator is built like W_p, but on a closed path that winds around the torus: on each
+    site of the path, the Pauli of the one bond the path does not use (Gohlke, Moessner and Pollmann,
+    https://arxiv.org/abs/1804.06811, Sec. II, for the cylinder). It commutes with H and with every
+    W_p, and the two loops (one per cycle of the torus) commute with each other, so their
+    eigenvalues +-1 label four topological sectors. Each path is a shortest path in the unwrapped
+    brick wall from (0, 0) to one of its images a (0, Ly) + b (Lx, twist); two images whose (a, b)
+    have determinant +-1 give the two cycles. On some tori the shortest path to an image crosses
+    itself on the torus, so a few images are tried and the shortest two simple loops are kept.
+    """
+
+    def neighbours(x, y):
+        yield (x + 1, y), "x" if (x + y) % 2 == 0 else "y"
+        yield (x - 1, y), "x" if (x - 1 + y) % 2 == 0 else "y"
+        yield (x, y + 1) if (x + y) % 2 == 0 else (x, y - 1), "z"
+
+    site = _site_function(Lx, Ly, twist)
+
+    def loop(tx, ty):
+        parent, frontier = {(0, 0): None}, [(0, 0)]
+        while (tx, ty) not in parent:  # breadth-first search
+            new = []
+            for p in frontier:
+                for q, _ in neighbours(*p):
+                    if q not in parent:
+                        parent[q] = p
+                        new.append(q)
+            frontier = new
+        path = [parent[(tx, ty)]]
+        while parent[path[-1]] is not None:
+            path.append(parent[path[-1]])
+        path = path[::-1]  # (0, 0), ..., the site before the image of (0, 0)
+        x, y = path[-1]
+        around = [(x - tx, y - ty), *path, (tx, ty)]  # each site's two neighbours on the loop
+        word = []
+        for k, p in enumerate(path):
+            used = {g for q, g in neighbours(*p) if q in (around[k], around[k + 2])}
+            word.append((site(*p), ({"x", "y", "z"} - used).pop().upper()))
+        return tuple(sorted(word)) if len({s for s, _ in word}) == len(word) else None  # None: crosses itself
+
+    found = {}
+    for a, b in [(1, 0), (0, 1), (1, 1), (-1, 1), (1, 2), (2, 1), (-1, 2), (-2, 1)]:
+        word = loop(b * Lx, a * Ly + b * twist)
+        if word is not None:
+            found[a, b] = word
+    pairs = [(p, q) for p in found for q in found if p < q and abs(p[0] * q[1] - p[1] * q[0]) == 1]
+    if not pairs:
+        raise ValueError("no two simple loops found on this torus")
+    p, q = min(pairs, key=lambda pq: len(found[pq[0]]) + len(found[pq[1]]))
+    return [found[p], found[q]]
+
+
+def kitaev_honeycomb(
+    Lx,
+    Ly,
+    K=(1.0, 1.0, 1.0),
+    periodic_x=True,
+    twist=0,
+    flux_penalty=0.0,
+    sector=None,
+    parity=None,
+    sector_penalty=0.5,
+):
     """Kitaev's model ``sum K_gamma S^gamma S^gamma`` on the brick wall, as a PauliSum (each term K / 4).
 
     ``flux_penalty`` adds ``-lambda sum_p W_p`` over every hexagon. The plaquette operators commute
     with H and with each other, so this keeps every eigenstate and only lowers the flux-free
     sector (W_p = +1, where Lieb's theorem puts the ground state of the infinite lattice) below
     the others; on small tori a flux sector can otherwise be lower or degenerate with it.
+
+    ``sector = (s1, s2)`` (torus only) adds ``-mu (s1 W_l1 + s2 W_l2)`` with ``mu = sector_penalty``
+    and the loops of ``torus_loops``: the same trick for the topological sectors. It lowers the
+    states with W_l1 = s1, W_l2 = s2 by 2 mu and raises or keeps the others, so DMRG on it finds
+    the ground state of that sector (add 2 mu to its energy).
+
+    ``parity = (px, pz)`` does the same for the global spin parities P_x = prod_i X_i and
+    P_z = prod_i Z_i, which H also conserves (every term flips spins in pairs) and which DMRG can
+    lose in the same way; with both ``sector`` and ``parity``, add 4 mu.
     """
     Kd = dict(zip("xyz", K, strict=True))
     bonds = brickwall_bonds(Lx, Ly, periodic_x, twist)
@@ -98,6 +171,11 @@ def kitaev_honeycomb(Lx, Ly, K=(1.0, 1.0, 1.0), periodic_x=True, twist=0, flux_p
     if flux_penalty:
         for sites in plaquettes(Lx, Ly, periodic_x, twist):
             terms.append((-flux_penalty, tuple(zip(sites, HEXAGON_W, strict=True))))
+    if sector is not None:
+        terms += [(-sector_penalty * s, word) for s, word in zip(sector, torus_loops(Lx, Ly, twist), strict=True)]
+    if parity is not None:
+        n = Lx * Ly
+        terms += [(-sector_penalty * p, tuple((s, a) for s in range(n))) for p, a in zip(parity, "XZ", strict=True)]
     kind = f"torus (twist {twist})" if periodic_x else "cylinder"
     return PauliSum(Lx * Ly, terms, name=f"Kitaev honeycomb, K = {tuple(K)}, {Lx} x {Ly} {kind}", shape=(Lx, Ly))
 
@@ -222,8 +300,13 @@ def region_measures(rho, parties):
     dims = [2 ** len(p) for p in parties]
     if len(parties) == 2:
         return negativity(r, (0,), dims)  # for two parties GMN is the negativity, an eigenvalue problem
-    # The first-order solver SCS agrees with the interior-point solver Clarabel to 1e-5 on these
-    # six-spin matrices and is about 30 times faster (1 s instead of 30 s for three parties). Six
-    # single-spin parties mean 31 bipartitions and a minute or two even with SCS, so the tolerance
-    # is looser there (the exact hexagon: 0.06534 at 1e-6, 0.06535 at 1e-8).
-    return gmn(r, dims, solver="SCS", eps=1e-8 if len(parties) <= 4 else 1e-6)
+    # Up to 6 qubits, the interior-point solver MOSEK, as in Lyu et al. (Methods), when it is
+    # installed (it needs a licence, free for academics): 2 s for three parties, about 100 s for six
+    # single spins (31 bipartitions). Otherwise Clarabel, also interior-point. The first-order
+    # solver SCS can stall for nearly pure states, as the RDMs of single ground states here are,
+    # but above 6 qubits it is the one that fits in memory.
+    import cvxpy
+
+    if len(order) > 6:
+        return gmn(r, dims, solver="SCS", eps=1e-8)
+    return gmn(r, dims, solver="MOSEK" if "MOSEK" in cvxpy.installed_solvers() else "CLARABEL")
