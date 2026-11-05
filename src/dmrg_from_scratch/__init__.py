@@ -116,3 +116,9 @@ __all__ += [
     "thermal_states",
     "transition_elements",
 ]
+
+# Notebook 18: Kitaev honeycomb clusters and an MPO for longer Pauli strings
+from .kitaev import kitaev_honeycomb  # noqa: E402
+from .mpo import pauli_string_mpo  # noqa: E402
+
+__all__ += ["kitaev_honeycomb", "pauli_string_mpo"]

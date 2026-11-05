@@ -130,6 +130,60 @@ def build_mpo(H: PauliSum) -> list[np.ndarray]:
     return mpo
 
 
+def pauli_string_mpo(H: PauliSum) -> list[np.ndarray]:
+    """MPO of any sum of real Pauli strings, of any length: one channel per term.
+
+    The same finite-state machine as :func:`build_mpo`, without sharing channels: a term that
+    acts on sites i1 < ... < im opens its own channel at i1 (with its coefficient), applies its
+    Pauli on each of its sites and identities in between, and closes at im. The MPO bond
+    dimension is 2 plus the number of terms whose span covers the bond, larger than
+    :func:`build_mpo` needs for two-site terms, but it takes the six-spin plaquette terms of
+    notebook 18.
+    """
+    n = H.n
+    onsite = [np.zeros((2, 2)) for _ in range(n)]
+    strings = []  # (sites, paulis, coefficient), sites increasing
+    for c, ops in H.terms:
+        n_y = sum(p == "Y" for _, p in ops)
+        if n_y % 2:
+            raise ValueError("odd number of Y: the term is not real")
+        c = c * (-1) ** (n_y // 2)
+        ops = sorted(ops)
+        if len(ops) == 1:
+            ((i, p),) = ops
+            onsite[i] += c * PAULI[p]
+        else:
+            strings.append(([i for i, _ in ops], dict(ops), c))
+
+    # channels[b] = open channels on the bond between sites b and b + 1: every term whose span covers it
+    channels = [
+        ["start", "done", *[k for k, (st, _, _) in enumerate(strings) if st[0] <= b < st[-1]]] for b in range(n - 1)
+    ]
+    left = [["start"]] + channels
+    right = channels + [["done"]]
+    mpo = []
+    for s in range(n):
+        li = {k: a for a, k in enumerate(left[s])}
+        ri = {k: a for a, k in enumerate(right[s])}
+        Wt = np.zeros((len(li), len(ri), 2, 2))
+        if "start" in li and "start" in ri:
+            Wt[li["start"], ri["start"]] = PAULI["I"]
+        if "done" in li and "done" in ri:
+            Wt[li["done"], ri["done"]] = PAULI["I"]
+        if "start" in li and "done" in ri:
+            Wt[li["start"], ri["done"]] = onsite[s]
+        for k, (sites, paulis, c) in enumerate(strings):
+            op = PAULI[paulis.get(s, "I")]
+            if s == sites[0]:
+                Wt[li["start"], ri[k]] = c * op  # open the channel, with the coefficient
+            elif sites[0] < s < sites[-1]:
+                Wt[li[k], ri[k]] = op  # carry it, acting on the term's own sites
+            elif s == sites[-1]:
+                Wt[li[k], ri["done"]] += op  # close it
+        mpo.append(Wt)
+    return mpo
+
+
 def mpo_to_dense(mpo):
     """Contract the MPO into a d^L x d^L matrix (only for small L, as a check)."""
     M = np.ones((1, 1, 1))  # M[out, in, right MPO bond]
